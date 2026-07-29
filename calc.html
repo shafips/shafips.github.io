@@ -30,7 +30,7 @@
   <!-- Header -->
   <header class="mb-6">
     <h1 class="text-xl font-bold tracking-tight">QA Remuneration Calculator</h1>
-    <p class="mt-1 text-xs text-neutral-600">Base pay is guaranteed per hour; performance pay scales with output against what's expected for the hours worked.</p>
+    <p class="mt-1 text-xs text-neutral-600">Base pay is guaranteed per hour. Performance pay scales with output measured against the hours spent producing it — the pool is the ceiling, never exceeded.</p>
   </header>
 
   <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -58,7 +58,12 @@
               class="mt-1.5 w-full rounded-full border border-neutral-200 bg-neutral-50 px-4 py-2 text-xs text-neutral-900 focus:border-neutral-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-neutral-200" />
           </div>
         </div>
-        <input id="valuePerPoint" type="hidden" value="10" />
+        <div class="mt-4">
+          <label class="block text-xs font-medium text-neutral-600">Expected output / hr <span class="text-neutral-400">(points)</span></label>
+          <input id="expectedPerHour" type="number" min="0" step="0.5" value="20"
+            class="mt-1.5 w-full rounded-full border border-neutral-200 bg-neutral-50 px-4 py-2 text-xs text-neutral-900 focus:border-neutral-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-neutral-200 sm:w-1/3" />
+          <p class="mt-1.5 text-xs text-neutral-500">The output standard. Expected points = this × hours worked.</p>
+        </div>
       </section>
 
       <!-- Output items -->
@@ -93,12 +98,12 @@
             <dd id="sumPoints" class="font-semibold tabular-nums">0</dd>
           </div>
           <div class="flex items-center justify-between rounded-2xl border border-neutral-200 px-4 py-2.5">
-            <dt class="text-neutral-600">Output value</dt>
-            <dd id="sumRaw" class="font-semibold tabular-nums">0</dd>
+            <dt class="text-neutral-600">Expected <span class="text-neutral-400">(std × hrs)</span></dt>
+            <dd id="sumExpected" class="font-semibold tabular-nums">0</dd>
           </div>
           <div class="flex items-center justify-between rounded-2xl border border-neutral-200 px-4 py-2.5">
-            <dt class="text-neutral-600">Expected <span class="text-neutral-400">(pool × hrs)</span></dt>
-            <dd id="sumExpected" class="font-semibold tabular-nums">0</dd>
+            <dt class="text-neutral-600">Output / hr</dt>
+            <dd id="sumOutputHr" class="font-semibold tabular-nums">0</dd>
           </div>
           <div class="flex items-center justify-between rounded-2xl border border-neutral-200 px-4 py-2.5">
             <dt class="text-neutral-600">Effective rate / hr</dt>
@@ -141,8 +146,110 @@
   </div>
 
   <p class="mt-6 text-center text-xs text-neutral-500">
-    Base pay is guaranteed for hours worked. Expected output = performance pool × hours; producing less scales only the performance pay down, meeting it pays the full performance amount.
+    Expected output = standard × hours. Productivity = actual output ÷ expected. Performance pay = pool × hours × productivity, capped at the full pool. More hours for the same output raises the bar and cuts performance pay; the same output in fewer hours meets the bar sooner and lifts the effective rate per hour.
   </p>
+
+  <!-- Methodology -->
+  <section class="mt-8 rounded-3xl border border-neutral-200 bg-white p-6">
+    <h2 class="text-sm font-semibold text-neutral-800">How it is calculated</h2>
+
+    <div class="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-2">
+
+      <!-- Formula -->
+      <div>
+        <h3 class="text-xs font-semibold text-neutral-500">The formula</h3>
+        <div class="mt-2.5 space-y-2 rounded-2xl bg-neutral-50 p-4 text-xs tabular-nums text-neutral-700">
+          <div><span class="font-semibold text-neutral-900">Points</span> = Σ (weight × count)</div>
+          <div><span class="font-semibold text-neutral-900">Expected</span> = standard / hr × hours</div>
+          <div><span class="font-semibold text-neutral-900">Productivity</span> = points ÷ expected</div>
+          <div><span class="font-semibold text-neutral-900">Factor</span> = min(1, productivity)</div>
+          <div class="border-t border-dashed border-neutral-300 pt-2"><span class="font-semibold text-neutral-900">Base pay</span> = base / hr × hours</div>
+          <div><span class="font-semibold text-neutral-900">Performance pay</span> = pool / hr × hours × factor</div>
+          <div><span class="font-semibold text-neutral-900">Total</span> = base pay + performance pay</div>
+        </div>
+        <ul class="mt-3 space-y-1.5 text-xs text-neutral-600">
+          <li>· Base pay is guaranteed. It never scales with output.</li>
+          <li>· The pool is a hard maximum. Factor is capped at 1, so performance pay can never exceed pool × hours.</li>
+          <li>· No fixed cash amount is attached to any single output item. Weights only convert priorities into one comparable points figure; pay comes from the ratio against expectation, not per item.</li>
+          <li>· Hours enter twice — they raise the expectation bar and they scale the pool. Logging more hours for the same output lowers productivity and cuts performance pay.</li>
+        </ul>
+      </div>
+
+      <!-- Worked example -->
+      <div>
+        <h3 class="text-xs font-semibold text-neutral-500">Worked example</h3>
+        <p class="mt-2.5 text-xs text-neutral-600">
+          Base <span class="font-semibold text-neutral-900">₹300</span> / hr &nbsp;·&nbsp;
+          Pool <span class="font-semibold text-neutral-900">₹200</span> / hr &nbsp;·&nbsp;
+          Standard <span class="font-semibold text-neutral-900">20</span> pts / hr
+        </p>
+        <p class="mt-2 text-xs text-neutral-600">
+          The same work — 2 critical (5), 4 high (3), 8 medium (2), 4 low (1), 4 suggestions (1), 2 improvements (2) =
+          <span class="font-semibold text-neutral-900">50 points</span> — logged against different hours:
+        </p>
+
+        <div class="mt-3 overflow-x-auto">
+          <table class="w-full text-xs tabular-nums">
+            <thead>
+              <tr class="border-b border-neutral-200 text-neutral-500">
+                <th class="py-2 pr-2 text-left font-medium">Hours</th>
+                <th class="py-2 px-2 text-right font-medium">Expected</th>
+                <th class="py-2 px-2 text-right font-medium">Prod.</th>
+                <th class="py-2 px-2 text-right font-medium">Base</th>
+                <th class="py-2 px-2 text-right font-medium">Perf</th>
+                <th class="py-2 px-2 text-right font-medium">Total</th>
+                <th class="py-2 pl-2 text-right font-medium">Rate / hr</th>
+              </tr>
+            </thead>
+            <tbody class="text-neutral-700">
+              <tr class="border-b border-neutral-100">
+                <td class="py-2 pr-2 font-semibold text-neutral-900">2.0</td>
+                <td class="py-2 px-2 text-right">40</td>
+                <td class="py-2 px-2 text-right font-semibold text-neutral-900">125%</td>
+                <td class="py-2 px-2 text-right">600</td>
+                <td class="py-2 px-2 text-right">400</td>
+                <td class="py-2 px-2 text-right font-semibold text-neutral-900">1,000</td>
+                <td class="py-2 pl-2 text-right">500</td>
+              </tr>
+              <tr class="border-b border-neutral-100">
+                <td class="py-2 pr-2 font-semibold text-neutral-900">2.5</td>
+                <td class="py-2 px-2 text-right">50</td>
+                <td class="py-2 px-2 text-right font-semibold text-neutral-900">100%</td>
+                <td class="py-2 px-2 text-right">750</td>
+                <td class="py-2 px-2 text-right">500</td>
+                <td class="py-2 px-2 text-right font-semibold text-neutral-900">1,250</td>
+                <td class="py-2 pl-2 text-right">500</td>
+              </tr>
+              <tr class="border-b border-neutral-100">
+                <td class="py-2 pr-2 font-semibold text-neutral-900">5.0</td>
+                <td class="py-2 px-2 text-right">100</td>
+                <td class="py-2 px-2 text-right font-semibold text-neutral-900">50%</td>
+                <td class="py-2 px-2 text-right">1,500</td>
+                <td class="py-2 px-2 text-right">500</td>
+                <td class="py-2 px-2 text-right font-semibold text-neutral-900">2,000</td>
+                <td class="py-2 pl-2 text-right">400</td>
+              </tr>
+              <tr>
+                <td class="py-2 pr-2 font-semibold text-neutral-900">10.0</td>
+                <td class="py-2 px-2 text-right">200</td>
+                <td class="py-2 px-2 text-right font-semibold text-neutral-900">25%</td>
+                <td class="py-2 px-2 text-right">3,000</td>
+                <td class="py-2 px-2 text-right">500</td>
+                <td class="py-2 px-2 text-right font-semibold text-neutral-900">3,500</td>
+                <td class="py-2 pl-2 text-right">350</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="mt-3 text-xs text-neutral-600">
+          Reading it: at <span class="font-semibold text-neutral-900">2.5 hrs</span> the work exactly meets the standard and earns the full pool.
+          Stretching the same 50 points to <span class="font-semibold text-neutral-900">10 hrs</span> drops productivity to 25%, so performance pay stays flat at ₹500 while base pay quadruples — the rate per hour falls from ₹500 to ₹350.
+          Finishing in <span class="font-semibold text-neutral-900">2 hrs</span> beats the standard, but the pool caps at 100%, so the gain shows up as the same ₹500 / hr rate on a smaller total bill rather than as a bonus.
+        </p>
+      </div>
+    </div>
+  </section>
 </div>
 
 <script>
@@ -174,7 +281,7 @@
             '<button data-role="inc" data-id="' + id + '" class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-neutral-300 bg-white text-base leading-none text-neutral-700 hover:bg-neutral-900 hover:text-white hover:border-neutral-900">+</button>' +
           '</div>' +
         '</div>' +
-        '<div class="col-span-2 text-right text-xs font-semibold tabular-nums text-neutral-800" data-role="rowval" data-id="' + id + '">₹0</div>' +
+        '<div class="col-span-2 text-right text-xs font-semibold tabular-nums text-neutral-800" data-role="rowval" data-id="' + id + '">0 pts</div>' +
       '</div>'
     );
   }
@@ -193,7 +300,7 @@
     const cur = "₹";
     const fixedBase = num($("fixedBase"));
     const perfPool = num($("perfPool"));
-    const valuePerPoint = num($("valuePerPoint"));
+    const expectedPerHour = num($("expectedPerHour"));
     const hours = num($("hours"));
 
     let points = 0;
@@ -201,28 +308,29 @@
       points += state[id].weight * state[id].count;
     });
 
-    // Productivity model: output value vs the value expected for the hours logged.
-    // Low output over many hours drops productivity, scaling BOTH base and performance down.
-    const outputValue = points * valuePerPoint;
-    const expected = perfPool * hours;                 // expected output value for those hours
-    const productivity = expected > 0 ? outputValue / expected : 0;
-    const factor = Math.min(1, productivity);          // never pay above the full rate
+    // Productivity = output achieved vs the output expected for the hours logged.
+    // More hours for the same output raises the bar, so productivity (and performance pay) drops.
+    // Fewer hours for the same output lowers the bar, so productivity rises toward the full pool.
+    const expected = expectedPerHour * hours;
+    const productivity = expected > 0 ? points / expected : 0;
+    const factor = Math.min(1, productivity);          // pool is a hard maximum
 
-    // per-row output value (raw contribution)
+    // per-row points contributed
     Object.keys(state).forEach(function (id) {
-      const rowRaw = state[id].weight * state[id].count * valuePerPoint;
+      const rowPts = state[id].weight * state[id].count;
       const el = document.querySelector('[data-role="rowval"][data-id="' + id + '"]');
-      if (el) el.textContent = fmt(cur, rowRaw);
+      if (el) el.textContent = (Math.round(rowPts * 100) / 100) + " pts";
     });
 
     const basePay = fixedBase * hours;                 // guaranteed for hours worked
-    const perfPay = perfPool * hours * factor;         // performance scaled by productivity
+    const perfPay = perfPool * hours * factor;         // performance scaled by productivity, capped at pool
     const total = basePay + perfPay;
     const rateHr = hours > 0 ? total / hours : 0;
+    const outputHr = hours > 0 ? points / hours : 0;
 
     $("sumPoints").textContent = Math.round(points * 100) / 100;
-    $("sumRaw").textContent = fmt(cur, outputValue);
-    $("sumExpected").textContent = fmt(cur, expected);
+    $("sumExpected").textContent = (Math.round(expected * 100) / 100) + " pts";
+    $("sumOutputHr").textContent = (Math.round(outputHr * 100) / 100) + " pts";
     $("sumRateHr").textContent = fmt(cur, rateHr);
     $("sumFixed").textContent = fmt(cur, basePay);
     $("sumPerf").textContent = fmt(cur, perfPay);
@@ -231,9 +339,24 @@
     const pct = Math.round(productivity * 100);
     $("poolPct").textContent = pct + "%";
     $("poolBar").style.width = Math.min(100, pct) + "%";
-    $("poolNote").textContent = productivity >= 1
-      ? "Full rate earned — output met or exceeded expectation."
-      : "Below expectation — pay scaled to " + Math.round(factor * 100) + "% of the full rate.";
+
+    let note;
+    if (expected <= 0) {
+      note = "Set hours and an expected output standard to score productivity.";
+    } else if (productivity >= 1) {
+      const surplus = Math.round((productivity - 1) * 100);
+      const hoursNeeded = points / expectedPerHour;
+      note = surplus > 0
+        ? "Full pool earned — " + surplus + "% above expectation. This output was worth " +
+          (Math.round(hoursNeeded * 100) / 100) + " hrs; billing fewer hours raises the rate / hr."
+        : "Full pool earned — output met expectation exactly.";
+    } else {
+      const hoursNeeded = expectedPerHour > 0 ? points / expectedPerHour : 0;
+      note = "Below expectation — performance pay scaled to " + Math.round(factor * 100) +
+        "% of the pool. This output justifies " + (Math.round(hoursNeeded * 100) / 100) +
+        " of the " + (Math.round(hours * 100) / 100) + " hrs logged.";
+    }
+    $("poolNote").textContent = note;
   }
 
   document.addEventListener("input", function (e) {
