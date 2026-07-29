@@ -145,47 +145,47 @@
     </aside>
   </div>
 
-  <p class="mt-6 text-center text-xs text-neutral-500">
-    Expected output = standard × hours. Productivity = actual output ÷ expected. Performance pay = pool × hours × productivity, capped at the full pool. More hours for the same output raises the bar and cuts performance pay; the same output in fewer hours meets the bar sooner and lifts the effective rate per hour.
-  </p>
-
-  <!-- Methodology -->
+  <!-- How it works -->
   <section class="mt-8 rounded-3xl border border-neutral-200 bg-white p-6">
-    <h2 class="text-sm font-semibold text-neutral-800">How it is calculated</h2>
+    <h2 class="text-sm font-semibold text-neutral-800">How it works</h2>
+
+    <p class="mt-3 text-xs leading-relaxed text-neutral-600">
+      You are paid a <span class="font-semibold text-neutral-900">fixed base</span> for every hour worked, plus a
+      <span class="font-semibold text-neutral-900">performance amount</span> that depends on how much you produced in those hours.
+      Each hour is expected to produce a set amount of output. Produce it, and you get the full performance amount.
+      Produce less, and the performance amount is reduced by the same proportion.
+    </p>
 
     <div class="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-2">
 
-      <!-- Formula -->
+      <!-- Steps -->
       <div>
-        <h3 class="text-xs font-semibold text-neutral-500">The formula</h3>
-        <div class="mt-2.5 space-y-2 rounded-2xl bg-neutral-50 p-4 text-xs tabular-nums text-neutral-700">
-          <div><span class="font-semibold text-neutral-900">Points</span> = Σ (weight × count)</div>
-          <div><span class="font-semibold text-neutral-900">Expected</span> = standard / hr × hours</div>
-          <div><span class="font-semibold text-neutral-900">Productivity</span> = points ÷ expected</div>
-          <div><span class="font-semibold text-neutral-900">Factor</span> = min(1, productivity)</div>
-          <div class="border-t border-dashed border-neutral-300 pt-2"><span class="font-semibold text-neutral-900">Base pay</span> = base / hr × hours</div>
-          <div><span class="font-semibold text-neutral-900">Performance pay</span> = pool / hr × hours × factor</div>
-          <div><span class="font-semibold text-neutral-900">Total</span> = base pay + performance pay</div>
-        </div>
-        <ul class="mt-3 space-y-1.5 text-xs text-neutral-600">
-          <li>· Base pay is guaranteed. It never scales with output.</li>
-          <li>· The pool is a hard maximum. Factor is capped at 1, so performance pay can never exceed pool × hours.</li>
-          <li>· No fixed cash amount is attached to any single output item. Weights only convert priorities into one comparable points figure; pay comes from the ratio against expectation, not per item.</li>
-          <li>· Hours enter twice — they raise the expectation bar and they scale the pool. Logging more hours for the same output lowers productivity and cuts performance pay.</li>
-        </ul>
+        <h3 class="text-xs font-semibold text-neutral-500">The three steps</h3>
+        <ol class="mt-2.5 space-y-3 text-xs leading-relaxed text-neutral-600">
+          <li>
+            <span class="font-semibold text-neutral-900">1. Count the output.</span>
+            Every bug and contribution is worth some points — a critical bug counts for more than a low one.
+            Add them up to get your total points.
+          </li>
+          <li>
+            <span class="font-semibold text-neutral-900">2. Compare it to the hours.</span>
+            Expected points = 20 per hour × hours worked. Your score is your points divided by that expectation.
+            Half the expected output means a score of 50%.
+          </li>
+          <li>
+            <span class="font-semibold text-neutral-900">3. Apply it to the pay.</span>
+            Base pay is untouched — you always get ₹300 for every hour.
+            The performance amount (₹200 per hour) is multiplied by your score.
+            Beating the expectation does not pay extra; the full amount is the maximum.
+          </li>
+        </ol>
       </div>
 
-      <!-- Worked example -->
+      <!-- Example -->
       <div>
-        <h3 class="text-xs font-semibold text-neutral-500">Worked example</h3>
-        <p class="mt-2.5 text-xs text-neutral-600">
-          Base <span class="font-semibold text-neutral-900">₹300</span> / hr &nbsp;·&nbsp;
-          Pool <span class="font-semibold text-neutral-900">₹200</span> / hr &nbsp;·&nbsp;
-          Standard <span class="font-semibold text-neutral-900">20</span> pts / hr
-        </p>
-        <p class="mt-2 text-xs text-neutral-600">
-          The same work — 2 critical (5), 4 high (3), 8 medium (2), 4 low (1), 4 suggestions (1), 2 improvements (2) =
-          <span class="font-semibold text-neutral-900">50 points</span> — logged against different hours:
+        <h3 class="text-xs font-semibold text-neutral-500">Example: 50 points of work</h3>
+        <p class="mt-2.5 text-xs leading-relaxed text-neutral-600">
+          The same work, done in different amounts of time. Base ₹300/hr, performance ₹200/hr, expected 20 points/hr.
         </p>
 
         <div class="mt-3 overflow-x-auto">
@@ -194,58 +194,48 @@
               <tr class="border-b border-neutral-200 text-neutral-500">
                 <th class="py-2 pr-2 text-left font-medium">Hours</th>
                 <th class="py-2 px-2 text-right font-medium">Expected</th>
-                <th class="py-2 px-2 text-right font-medium">Prod.</th>
+                <th class="py-2 px-2 text-right font-medium">Score</th>
                 <th class="py-2 px-2 text-right font-medium">Base</th>
-                <th class="py-2 px-2 text-right font-medium">Perf</th>
-                <th class="py-2 px-2 text-right font-medium">Total</th>
-                <th class="py-2 pl-2 text-right font-medium">Rate / hr</th>
+                <th class="py-2 px-2 text-right font-medium">Performance</th>
+                <th class="py-2 pl-2 text-right font-medium">Total</th>
               </tr>
             </thead>
             <tbody class="text-neutral-700">
               <tr class="border-b border-neutral-100">
-                <td class="py-2 pr-2 font-semibold text-neutral-900">2.0</td>
-                <td class="py-2 px-2 text-right">40</td>
-                <td class="py-2 px-2 text-right font-semibold text-neutral-900">125%</td>
-                <td class="py-2 px-2 text-right">600</td>
-                <td class="py-2 px-2 text-right">400</td>
-                <td class="py-2 px-2 text-right font-semibold text-neutral-900">1,000</td>
-                <td class="py-2 pl-2 text-right">500</td>
-              </tr>
-              <tr class="border-b border-neutral-100">
-                <td class="py-2 pr-2 font-semibold text-neutral-900">2.5</td>
-                <td class="py-2 px-2 text-right">50</td>
+                <td class="py-2 pr-2 font-semibold text-neutral-900">2.5 hrs</td>
+                <td class="py-2 px-2 text-right">50 pts</td>
                 <td class="py-2 px-2 text-right font-semibold text-neutral-900">100%</td>
-                <td class="py-2 px-2 text-right">750</td>
-                <td class="py-2 px-2 text-right">500</td>
-                <td class="py-2 px-2 text-right font-semibold text-neutral-900">1,250</td>
-                <td class="py-2 pl-2 text-right">500</td>
+                <td class="py-2 px-2 text-right">₹750</td>
+                <td class="py-2 px-2 text-right">₹500</td>
+                <td class="py-2 pl-2 text-right font-semibold text-neutral-900">₹1,250</td>
               </tr>
               <tr class="border-b border-neutral-100">
-                <td class="py-2 pr-2 font-semibold text-neutral-900">5.0</td>
-                <td class="py-2 px-2 text-right">100</td>
+                <td class="py-2 pr-2 font-semibold text-neutral-900">5 hrs</td>
+                <td class="py-2 px-2 text-right">100 pts</td>
                 <td class="py-2 px-2 text-right font-semibold text-neutral-900">50%</td>
-                <td class="py-2 px-2 text-right">1,500</td>
-                <td class="py-2 px-2 text-right">500</td>
-                <td class="py-2 px-2 text-right font-semibold text-neutral-900">2,000</td>
-                <td class="py-2 pl-2 text-right">400</td>
+                <td class="py-2 px-2 text-right">₹1,500</td>
+                <td class="py-2 px-2 text-right">₹500</td>
+                <td class="py-2 pl-2 text-right font-semibold text-neutral-900">₹2,000</td>
               </tr>
               <tr>
-                <td class="py-2 pr-2 font-semibold text-neutral-900">10.0</td>
-                <td class="py-2 px-2 text-right">200</td>
+                <td class="py-2 pr-2 font-semibold text-neutral-900">10 hrs</td>
+                <td class="py-2 px-2 text-right">200 pts</td>
                 <td class="py-2 px-2 text-right font-semibold text-neutral-900">25%</td>
-                <td class="py-2 px-2 text-right">3,000</td>
-                <td class="py-2 px-2 text-right">500</td>
-                <td class="py-2 px-2 text-right font-semibold text-neutral-900">3,500</td>
-                <td class="py-2 pl-2 text-right">350</td>
+                <td class="py-2 px-2 text-right">₹3,000</td>
+                <td class="py-2 px-2 text-right">₹500</td>
+                <td class="py-2 pl-2 text-right font-semibold text-neutral-900">₹3,500</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <p class="mt-3 text-xs text-neutral-600">
-          Reading it: at <span class="font-semibold text-neutral-900">2.5 hrs</span> the work exactly meets the standard and earns the full pool.
-          Stretching the same 50 points to <span class="font-semibold text-neutral-900">10 hrs</span> drops productivity to 25%, so performance pay stays flat at ₹500 while base pay quadruples — the rate per hour falls from ₹500 to ₹350.
-          Finishing in <span class="font-semibold text-neutral-900">2 hrs</span> beats the standard, but the pool caps at 100%, so the gain shows up as the same ₹500 / hr rate on a smaller total bill rather than as a bonus.
+        <p class="mt-3 text-xs leading-relaxed text-neutral-600">
+          The 5 hr row in full: 50 points ÷ (20 × 5) = 50%.
+          Base = ₹300 × 5 = ₹1,500. Performance = ₹200 × 5 × 50% = ₹500. Total ₹2,000.
+        </p>
+        <p class="mt-2 text-xs leading-relaxed text-neutral-600">
+          Notice the performance amount stays at ₹500 in every row — the same work earns the same performance pay
+          no matter how long it takes. Taking longer only adds base pay, so the value delivered per hour falls.
         </p>
       </div>
     </div>
