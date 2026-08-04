@@ -1,1 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultrasound Scan</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+  }
+
+  #video-bg {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+  }
+
+  /* Dark overlay with a spotlight hole that follows the cursor. */
+  #overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+
+    --x: 50%;
+    --y: 50%;
+    --r: 420px;
+    --dim: 1;
+    --soft: 55%;   /* where the falloff reaches its midpoint */
+
+    background: radial-gradient(
+      circle var(--r) at var(--x) var(--y),
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, calc(var(--dim) * 0.55)) var(--soft),
+      rgba(0, 0, 0, var(--dim)) 100%
+    );
+  }
+
+  /* A second layer holds the flat wash. Cross-fading its opacity animates
+     cleanly — transitioning `background` between a gradient and a solid
+     colour does not, since the two are different image types. */
+  #overlay::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, var(--dim));
+    opacity: 0;
+    transition: opacity 600ms ease-out;
+  }
+
+  #overlay.idle::after { opacity: 1; }
+
+  #video-bg::-webkit-media-controls,
+  #video-bg::-webkit-media-controls-enclosure,
+  #video-bg::-webkit-media-controls-panel,
+  #video-bg::-webkit-media-controls-start-playback-button {
+    display: none !important;
+    -webkit-appearance: none;
+  }
+
+  /* --- Scanner HUD chrome ------------------------------------------------ */
+
+  /* --- Realistic sweep ---------------------------------------------------
+     A real scan line is a bright leading edge with a phosphor trail that
+     decays behind it. The wrapper handles motion; the inner layers handle
+     the glow, so the trail always lags the correct direction of travel. */
+  @keyframes sweep {
+    0%   { transform: translate3d(0, -12vh, 0); }
+    100% { transform: translate3d(0, 100vh, 0); }
+  }
+
+  #scanline {
+    animation: sweep 4s linear infinite;
+    will-change: transform;   /* promote to its own compositor layer */
+  }
+
+  /* Decaying trail above the leading edge */
+  .sweep-trail {
+    background: linear-gradient(
+      to bottom,
+      rgba(45, 212, 191, 0)    0%,
+      rgba(45, 212, 191, 0.05) 45%,
+      rgba(45, 212, 191, 0.16) 78%,
+      rgba(45, 212, 191, 0.30) 96%,
+      rgba(45, 212, 191, 0)   100%
+    );
+  }
+
+  /* The bright acquisition line itself */
+  .sweep-edge {
+    background: linear-gradient(
+      to bottom,
+      rgba(153, 246, 228, 0) 0%,
+      rgba(153, 246, 228, 0.9) 45%,
+      rgba(204, 251, 241, 1) 50%,
+      rgba(153, 246, 228, 0.9) 55%,
+      rgba(153, 246, 228, 0) 100%
+    );
+    box-shadow:
+      0 0 12px rgba(45, 212, 191, 0.85),
+      0 0 34px rgba(45, 212, 191, 0.45);
+  }
+
+  /* Tissue brightens momentarily as the beam passes over it */
+  .sweep-wash {
+    background: linear-gradient(
+      to bottom,
+      rgba(153, 246, 228, 0) 0%,
+      rgba(153, 246, 228, 0.07) 55%,
+      rgba(153, 246, 228, 0) 100%
+    );
+    mix-blend-mode: screen;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #scanline { animation: none; opacity: 0.25; }
+  }
+
+  /* Faint horizontal raster lines, like a CRT readout */
+  .raster {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      rgba(45, 212, 191, 0.05) 0px,
+      rgba(45, 212, 191, 0.05) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  }
+
+  @keyframes blink { 50% { opacity: 0.25; } }
+  .blink { animation: blink 1.4s ease-in-out infinite; }
+
+  /* Measurement grid, like a caliper reticle */
+  .grid-overlay {
+    background-image:
+      repeating-linear-gradient(to right,
+        rgba(45, 212, 191, 0.18) 0px, rgba(45, 212, 191, 0.18) 1px,
+        transparent 1px, transparent 80px),
+      repeating-linear-gradient(to bottom,
+        rgba(45, 212, 191, 0.18) 0px, rgba(45, 212, 191, 0.18) 1px,
+        transparent 1px, transparent 80px);
+  }
+
+  /* Flash frame for the Capture button */
+  @keyframes flash { from { opacity: 0.85; } to { opacity: 0; } }
+  .flash { animation: flash 400ms ease-out forwards; }
+
+  /* Range inputs, restyled to match the HUD */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 2px;
+    background: rgba(45, 212, 191, 0.25);
+  }
+  input[type="range"]::-moz-range-track {
+    height: 2px;
+    background: rgba(45, 212, 191, 0.25);
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    margin-top: -5px;
+    border-radius: 9999px;
+    background: #2dd4bf;
+    box-shadow: 0 0 8px rgba(45, 212, 191, 0.9);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border: 0;
+    border-radius: 9999px;
+    background: #2dd4bf;
+    box-shadow: 0 0 8px rgba(45, 212, 191, 0.9);
+  }
+
+</style>
+</head>
+<body class="font-mono text-teal-300 selection:bg-teal-500/30">
+
+<video
+  id="video-bg"
+  src="create_another_minimal_move_vi.mp4"
+  autoplay muted loop playsinline preload="auto"
+  disablepictureinpicture disableremoteplayback>
+</video>
+
+<div id="overlay"></div>
+
+<!-- ===================== SCANNER HUD ===================== -->
+<div id="hud" class="fixed inset-0 z-10 pointer-events-none select-none">
+
+  <!-- CRT raster + sweeping scanline -->
+  <div id="raster" class="raster absolute inset-0 opacity-60"></div>
+  <!-- Sweep: trail + leading edge + tissue wash, moved as one layer -->
+  <div id="scanline" class="absolute inset-x-0 top-0 h-[14vh]">
+    <div class="sweep-trail absolute inset-x-0 top-0 h-full"></div>
+    <div class="sweep-wash  absolute inset-x-0 bottom-0 h-10"></div>
+    <div class="sweep-edge  absolute inset-x-0 bottom-0 h-[3px]"></div>
+  </div>
+
+  <!-- Measurement grid (toggled off by default) -->
+  <div id="grid" class="grid-overlay absolute inset-0 hidden"></div>
+
+  <!-- Corner brackets -->
+  <div class="absolute left-6 top-6 h-10 w-10 border-l-2 border-t-2 border-teal-400/60"></div>
+  <div class="absolute right-6 top-6 h-10 w-10 border-r-2 border-t-2 border-teal-400/60"></div>
+  <div class="absolute bottom-6 left-6 h-10 w-10 border-b-2 border-l-2 border-teal-400/60"></div>
+  <div class="absolute bottom-6 right-6 h-10 w-10 border-b-2 border-r-2 border-teal-400/60"></div>
+
+  <!-- Patient / study header bar, as on a real console -->
+  <div class="pointer-events-none absolute inset-x-0 top-0 border-b border-teal-400/20
+              bg-black/70 px-6 py-2 backdrop-blur-sm">
+    <div class="flex flex-wrap items-center justify-between gap-x-8 gap-y-1
+                text-[11px] uppercase tracking-[0.18em]">
+      <div class="flex items-center gap-6">
+        <span class="flex items-center gap-2 text-teal-400">
+          <span class="blink h-2 w-2 rounded-full bg-teal-400 shadow-[0_0_8px_#2dd4bf]"></span>
+          <span id="acq-state">Live</span>
+        </span>
+        <span class="text-teal-500/60">ID <span class="text-teal-300">ANON-004821</span></span>
+        <span class="text-teal-500/60">Study <span class="text-teal-300" id="exam-label">Abdominal</span></span>
+        <span class="text-teal-500/60">Probe <span class="text-teal-300" id="probe-label">C5-2</span></span>
+        <span class="text-teal-500/60">MI <span class="text-teal-300 tabular-nums" id="mi">0.8</span></span>
+        <span class="text-teal-500/60">TIS <span class="text-teal-300 tabular-nums" id="tis">0.3</span></span>
+      </div>
+      <div class="flex items-center gap-6">
+        <span class="text-teal-500/60">FR <span class="text-teal-300 tabular-nums" id="fps">--</span> Hz</span>
+        <span class="text-teal-500/60">T <span class="text-teal-300 tabular-nums" id="clock">00:00</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Left rail: depth scale, like the cm markers beside a real image -->
+  <div id="depth-scale"
+       class="absolute left-6 top-24 bottom-40 flex w-10 flex-col justify-between
+              text-[9px] tabular-nums text-teal-400/70"></div>
+
+  <!-- Bottom: control panel (pointer-events re-enabled here) -->
+  <div class="pointer-events-auto absolute inset-x-0 bottom-0 p-6">
+    <div class="mx-auto flex max-w-4xl flex-col gap-4 rounded-lg border border-teal-400/25
+                bg-black/60 p-5 backdrop-blur-md shadow-[0_0_40px_rgba(45,212,191,0.08)]">
+
+      <!-- Imaging mode + exam preset rows -->
+      <div class="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-teal-400/15 pb-4">
+        <div class="flex items-center gap-2">
+          <span class="mr-1 text-[10px] uppercase tracking-[0.2em] text-teal-500/60">Mode</span>
+          <button data-mode="B" class="mode-btn rounded border border-teal-400/40 bg-teal-400/20 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/25">B</button>
+          <button data-mode="M" class="mode-btn rounded border border-teal-400/40 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/15">M</button>
+          <button data-mode="Color" class="mode-btn rounded border border-teal-400/40 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/15">Color</button>
+          <button data-mode="Power" class="mode-btn rounded border border-teal-400/40 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/15">Power</button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="mr-1 text-[10px] uppercase tracking-[0.2em] text-teal-500/60">Preset</span>
+          <button data-preset="Abdominal" class="preset-btn rounded border border-teal-400/30 bg-teal-400/20 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/25">Abdo</button>
+          <button data-preset="Obstetric" class="preset-btn rounded border border-teal-400/30 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/15">OB</button>
+          <button data-preset="Cardiac" class="preset-btn rounded border border-teal-400/30 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/15">Cardiac</button>
+          <button data-preset="Vascular" class="preset-btn rounded border border-teal-400/30 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/15">Vascular</button>
+        </div>
+      </div>
+
+      <!-- Core sliders -->
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <label class="flex flex-col gap-2">
+          <span class="flex justify-between text-[10px] uppercase tracking-[0.2em] text-teal-500/80">
+            Gain <span class="tabular-nums text-teal-300" id="gain-val">100%</span>
+          </span>
+          <input id="gain" type="range" min="40" max="180" value="100" class="w-full">
+        </label>
+
+        <label class="flex flex-col gap-2">
+          <span class="flex justify-between text-[10px] uppercase tracking-[0.2em] text-teal-500/80">
+            Depth <span class="tabular-nums text-teal-300" id="depth-val">420px</span>
+          </span>
+          <input id="depth" type="range" min="120" max="1200" value="420" class="w-full">
+        </label>
+
+        <label class="flex flex-col gap-2">
+          <span class="flex justify-between text-[10px] uppercase tracking-[0.2em] text-teal-500/80">
+            Contrast <span class="tabular-nums text-teal-300" id="contrast-val">100%</span>
+          </span>
+          <input id="contrast" type="range" min="50" max="250" value="100" class="w-full">
+        </label>
+
+        <label class="flex flex-col gap-2">
+          <span class="flex justify-between text-[10px] uppercase tracking-[0.2em] text-teal-500/80">
+            Speed <span class="tabular-nums text-teal-300" id="speed-val">1.0x</span>
+          </span>
+          <input id="speed" type="range" min="25" max="200" value="100" class="w-full">
+        </label>
+      </div>
+
+      <!-- Hidden controls: still driven by modes/presets/reset, just not shown -->
+      <div class="hidden">
+        <input id="focus" type="range" min="0" max="60" value="0">
+        <span id="focus-val"></span>
+        <input id="tint" type="range" min="0" max="360" value="0">
+        <span id="tint-val"></span>
+        <input id="zoom" type="range" min="100" max="250" value="100">
+        <span id="zoom-val"></span>
+        <input id="sweep" type="range" min="5" max="120" value="40">
+        <span id="sweep-val"></span>
+        <input id="edge" type="range" min="5" max="95" value="55">
+        <span id="edge-val"></span>
+        <input id="seek" type="range" min="0" max="1000" value="0">
+        <span id="time-val"></span>
+      </div>
+
+      <!-- Buttons -->
+      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-teal-400/15 pt-4">
+        <div class="flex flex-wrap gap-2">
+          <button data-act="freeze"
+            class="rounded border border-teal-400/40 px-4 py-2 text-[11px] uppercase tracking-[0.2em]
+                   text-teal-300 transition hover:bg-teal-400/15 active:scale-95">
+            Freeze
+          </button>
+          <button data-act="capture"
+            class="rounded border border-teal-400/40 px-4 py-2 text-[11px] uppercase tracking-[0.2em]
+                   text-teal-300 transition hover:bg-teal-400/15 active:scale-95">
+            Capture
+          </button>
+          <button data-act="grid"
+            class="rounded border border-teal-400/40 px-4 py-2 text-[11px] uppercase tracking-[0.2em]
+                   text-teal-300 transition hover:bg-teal-400/15 active:scale-95">
+            Grid
+          </button>
+          <button data-act="fullscreen"
+            class="rounded border border-teal-400/40 px-4 py-2 text-[11px] uppercase tracking-[0.2em]
+                   text-teal-300 transition hover:bg-teal-400/15 active:scale-95">
+            Fullscreen
+          </button>
+          <button data-act="reset"
+            class="rounded border border-teal-400/25 px-4 py-2 text-[11px] uppercase tracking-[0.2em]
+                   text-teal-500/70 transition hover:bg-teal-400/10 active:scale-95">
+            Reset
+          </button>
+        </div>
+
+        <!-- Off-panel controls: keyboard-driven, kept in the DOM so the
+             handlers, presets and Reset continue to work. -->
+        <div class="hidden">
+          <button data-act="invert"></button>
+          <button data-act="spotlight"></button>
+          <button data-act="mirror"></button>
+          <button data-act="raster"></button>
+          <button data-act="step-back"></button>
+          <button data-act="step-fwd"></button>
+        </div>
+
+        <div class="text-[10px] uppercase tracking-[0.2em] text-teal-500/50">
+          Space Freeze &middot; I Invert &middot; S Spotlight &middot; &larr;&rarr; Step
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const video   = document.getElementById('video-bg');
+  const overlay = document.getElementById('overlay');
+
+  // ---- Cursor spotlight ---------------------------------------------------
+  let spotlightOn = true;
+  let pending = null;
+
+  let restTimer = null;
+
+  function track(e) {
+    pending = e;
+
+    // Any movement cancels a pending fade-out and re-lights the beam.
+    clearTimeout(restTimer);
+    restTimer = setTimeout(rest, 1600);
+
+    if (track.queued) return;
+    track.queued = true;
+    requestAnimationFrame(() => {
+      track.queued = false;
+      if (!spotlightOn) return;
+      overlay.classList.remove('idle');
+      overlay.style.setProperty('--x', pending.clientX + 'px');
+      overlay.style.setProperty('--y', pending.clientY + 'px');
+    });
+  }
+
+  // Cursor stopped or left — dim back to a full wash instead of leaving a
+  // bright spot stranded at the last hovered point.
+  function rest() {
+    clearTimeout(restTimer);
+    overlay.classList.add('idle');
+  }
+
+  document.addEventListener('mousemove', track, { passive: true });
+
+  // `mouseleave` on document is unreliable; `mouseout` with no relatedTarget
+  // is the dependable signal that the pointer actually left the window.
+  document.addEventListener('mouseout', e => {
+    if (!e.relatedTarget) rest();
+  });
+  window.addEventListener('blur', rest);
+
+  if (!matchMedia('(hover: hover)').matches) overlay.classList.add('idle');
+
+  // Controls stay visible at all times — a console panel that vanishes
+  // mid-interaction is worse than one that is always there.
+
+  // ---- Playback -----------------------------------------------------------
+  video.muted = true;
+  video.volume = 0;
+
+  function play() {
+    const p = video.play();
+    if (p) p.catch(() => {});
+  }
+
+  play();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) play(); });
+  document.addEventListener('touchstart', play, { once: true, passive: true });
+
+  video.addEventListener('ended', () => { video.currentTime = 0; play(); });
+
+  video.addEventListener('error', () => {
+    document.body.insertAdjacentHTML('beforeend',
+      '<p class="fixed inset-0 z-20 grid place-content-center text-center text-sm text-teal-500">' +
+      'Signal lost &mdash; could not load create_another_minimal_move_vi.mp4</p>');
+  });
+
+  // ---- Controls -----------------------------------------------------------
+  const $  = id => document.getElementById(id);
+  const $$ = sel => document.querySelector(sel);
+
+  // Draw the current frame (with filters baked in) and download it.
+  function capture() {
+    const c = document.createElement('canvas');
+    c.width  = video.videoWidth  || 1280;
+    c.height = video.videoHeight || 720;
+    const ctx = c.getContext('2d');
+    ctx.filter = getComputedStyle(video).filter || 'none';
+    try {
+      ctx.drawImage(video, 0, 0, c.width, c.height);
+      const a = document.createElement('a');
+      a.download = 'scan-frame.png';
+      a.href = c.toDataURL('image/png');
+      a.click();
+    } catch (e) {
+      // Cross-origin video would taint the canvas; local files are fine.
+      console.warn('Capture failed:', e);
+    }
+    // Visual shutter flash
+    const f = document.createElement('div');
+    f.className = 'flash pointer-events-none fixed inset-0 z-30 bg-white';
+    document.body.appendChild(f);
+    setTimeout(() => f.remove(), 400);
+  }
+
+  const gain     = $('gain');
+  const depth    = $('depth');
+  const speed    = $('speed');
+  const contrast = $('contrast');
+  const focus    = $('focus');
+  const tint     = $('tint');
+  const zoom     = $('zoom');
+  const sweep    = $('sweep');
+  const edge     = $('edge');
+  const seek     = $('seek');
+
+  let inverted = false;
+  let mirrored = false;
+
+  // All image adjustments funnel through one filter string so they compose
+  // instead of overwriting each other.
+  function applyFilter() {
+    const parts = [
+      `brightness(${gain.value / 100})`,
+      `contrast(${contrast.value / 100})`
+    ];
+    if (+focus.value > 0) parts.push(`blur(${focus.value / 10}px)`);
+    if (+tint.value  > 0) parts.push(`hue-rotate(${tint.value}deg)`);
+    if (inverted)         parts.push('invert(1)');
+    video.style.filter = parts.join(' ');
+  }
+
+  // Zoom and mirror are transforms, kept separate from filters.
+  function applyTransform() {
+    const s = zoom.value / 100;
+    video.style.transform = `scale(${s})${mirrored ? ' scaleX(-1)' : ''}`;
+  }
+
+  gain.addEventListener('input', () => {
+    $('gain-val').textContent = gain.value + '%';
+    applyFilter();
+  });
+
+  contrast.addEventListener('input', () => {
+    $('contrast-val').textContent = contrast.value + '%';
+    applyFilter();
+  });
+
+  focus.addEventListener('input', () => {
+    $('focus-val').textContent = (focus.value / 10).toFixed(1) + 'px';
+    applyFilter();
+  });
+
+  tint.addEventListener('input', () => {
+    $('tint-val').textContent = tint.value + '°';
+    applyFilter();
+  });
+
+  zoom.addEventListener('input', () => {
+    $('zoom-val').textContent = (zoom.value / 100).toFixed(2) + 'x';
+    applyTransform();
+  });
+
+  sweep.addEventListener('input', () => {
+    const secs = sweep.value / 10;
+    $('sweep-val').textContent = secs.toFixed(1) + 's';
+    $('scanline').style.animationDuration = secs + 's';
+  });
+
+  // The sweep is an acquisition artifact — it must stop when the image is
+  // frozen, exactly as the beam stops on a real machine.
+  function syncSweep() {
+    $('scanline').style.animationPlayState = video.paused ? 'paused' : 'running';
+  }
+  video.addEventListener('pause', syncSweep);
+  video.addEventListener('play',  syncSweep);
+
+  // Sweep rate tracks playback rate, so speeding up the loop speeds the beam.
+  speed.addEventListener('input', () => {
+    $('scanline').style.animationDuration =
+      ((sweep.value / 10) / (video.playbackRate || 1)).toFixed(3) + 's';
+  });
+
+  edge.addEventListener('input', () => {
+    $('edge-val').textContent = edge.value + '%';
+    overlay.style.setProperty('--soft', edge.value + '%');
+  });
+
+  depth.addEventListener('input', () => {
+    $('depth-val').textContent = depth.value + 'px';
+    overlay.style.setProperty('--r', depth.value + 'px');
+  });
+
+  speed.addEventListener('input', () => {
+    const r = speed.value / 100;
+    $('speed-val').textContent = r.toFixed(2) + 'x';
+    video.playbackRate = r;
+  });
+
+  // ---- Timeline scrubber --------------------------------------------------
+  const fmt = t => {
+    if (!isFinite(t)) return '0:00';
+    const m = Math.floor(t / 60);
+    const s = String(Math.floor(t % 60)).padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
+  let scrubbing = false;
+  seek.addEventListener('pointerdown', () => scrubbing = true);
+  seek.addEventListener('pointerup',   () => scrubbing = false);
+
+  seek.addEventListener('input', () => {
+    if (!video.duration) return;
+    video.currentTime = (seek.value / 1000) * video.duration;
+  });
+
+  video.addEventListener('timeupdate', () => {
+    if (!video.duration) return;
+    if (!scrubbing) seek.value = (video.currentTime / video.duration) * 1000;
+    $('time-val').textContent = `${fmt(video.currentTime)} / ${fmt(video.duration)}`;
+  });
+
+  document.querySelectorAll('[data-act]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const act = btn.dataset.act;
+
+      if (act === 'freeze') {
+        if (video.paused) { play(); btn.textContent = 'Freeze'; }
+        else { video.pause(); btn.textContent = 'Resume'; }
+        const frozen = video.paused;
+        $('acq-state').textContent = frozen ? 'Frozen' : 'Live';
+        $('acq-state').previousElementSibling?.classList.toggle('blink', !frozen);
+        btn.classList.toggle('bg-teal-400/20', frozen);
+      }
+
+      if (act === 'invert') {
+        inverted = !inverted;
+        applyFilter();
+        btn.classList.toggle('bg-teal-400/20', inverted);
+      }
+
+      if (act === 'mirror') {
+        mirrored = !mirrored;
+        applyTransform();
+        btn.classList.toggle('bg-teal-400/20', mirrored);
+      }
+
+      if (act === 'grid') {
+        $('grid').classList.toggle('hidden');
+        btn.classList.toggle('bg-teal-400/20', !$('grid').classList.contains('hidden'));
+      }
+
+      if (act === 'raster') {
+        const on = $('raster').classList.toggle('hidden');
+        btn.textContent = 'Raster: ' + (on ? 'Off' : 'On');
+      }
+
+      if (act === 'spotlight') {
+        spotlightOn = !spotlightOn;
+        btn.textContent = 'Spotlight: ' + (spotlightOn ? 'On' : 'Off');
+        overlay.style.setProperty('--dim', spotlightOn ? 1 : 0);
+      }
+
+      // Frame stepping — 1/30s nudges. Pauses first, as a real scanner does.
+      if (act === 'step-back' || act === 'step-fwd') {
+        video.pause();
+        $$('[data-act="freeze"]').textContent = 'Resume';
+        video.currentTime = Math.max(0, Math.min(
+          video.duration || 0,
+          video.currentTime + (act === 'step-fwd' ? 1/30 : -1/30)
+        ));
+      }
+
+      // Capture — draws the current frame to a canvas and downloads it.
+      if (act === 'capture') capture();
+
+      if (act === 'fullscreen') {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else document.documentElement.requestFullscreen().catch(() => {});
+      }
+
+      if (act === 'reset') {
+        [['gain',100],['depth',420],['speed',100],['contrast',100],
+         ['focus',0],['tint',0],['zoom',100],['sweep',40],['edge',55]
+        ].forEach(([id, v]) => {
+          const el = $(id);
+          el.value = v;
+          el.dispatchEvent(new Event('input'));
+        });
+        if (inverted) $$('[data-act="invert"]').click();
+        if (mirrored) $$('[data-act="mirror"]').click();
+        if (video.paused) $$('[data-act="freeze"]').click();
+      }
+    });
+  });
+
+  // ---- Imaging modes ------------------------------------------------------
+  // Each mode maps to a distinct look, so switching is visibly real.
+  const MODES = {
+    B:     { tint: 0,   contrast: 100, label: 'B / 2D'   },
+    M:     { tint: 0,   contrast: 165, label: 'M-Mode'   },
+    Color: { tint: 200, contrast: 120, label: 'Color Doppler' },
+    Power: { tint: 320, contrast: 135, label: 'Power Doppler' }
+  };
+
+  let activeMode = 'B';
+
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeMode = btn.dataset.mode;
+      const m = MODES[activeMode];
+
+      document.querySelectorAll('.mode-btn').forEach(b =>
+        b.classList.toggle('bg-teal-400/20', b === btn));
+
+      tint.value = m.tint;         tint.dispatchEvent(new Event('input'));
+      contrast.value = m.contrast; contrast.dispatchEvent(new Event('input'));
+
+      // M-mode sweeps a single line — show the scanline moving fast.
+      $('scanline').style.display = activeMode === 'M' ? 'block' : '';
+      if (activeMode === 'M') {
+        sweep.value = 10; sweep.dispatchEvent(new Event('input'));
+      }
+    });
+  });
+
+  // ---- Exam presets -------------------------------------------------------
+  const PRESETS = {
+    Abdominal: { probe: 'C5-2',  mi: '0.8', tis: '0.3', gain: 100, depth: 420, contrast: 100 },
+    Obstetric: { probe: 'C1-5',  mi: '0.4', tis: '0.2', gain: 115, depth: 520, contrast: 95  },
+    Cardiac:   { probe: 'P4-2',  mi: '1.1', tis: '0.5', gain: 90,  depth: 340, contrast: 140 },
+    Vascular:  { probe: 'L12-3', mi: '0.9', tis: '0.4', gain: 125, depth: 260, contrast: 120 }
+  };
+
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.preset;
+      const p = PRESETS[name];
+
+      document.querySelectorAll('.preset-btn').forEach(b =>
+        b.classList.toggle('bg-teal-400/20', b === btn));
+
+      $('exam-label').textContent = name;
+      $('probe-label').textContent = p.probe;
+      $('mi').textContent  = p.mi;
+      $('tis').textContent = p.tis;
+
+      gain.value = p.gain;         gain.dispatchEvent(new Event('input'));
+      depth.value = p.depth;       depth.dispatchEvent(new Event('input'));
+      contrast.value = p.contrast; contrast.dispatchEvent(new Event('input'));
+    });
+  });
+
+  // ---- Depth scale (cm markers down the left rail) ------------------------
+  function drawDepthScale() {
+    // Map the spotlight radius to a plausible cm depth: bigger radius = deeper field
+    const maxCm = Math.round(depth.value / 40);
+    const rail = $('depth-scale');
+    rail.innerHTML = '';
+    for (let i = 0; i <= 6; i++) {
+      const cm = (maxCm * i / 6).toFixed(0);
+      rail.insertAdjacentHTML('beforeend',
+        `<div class="flex items-center gap-1">
+           <span class="h-px w-3 bg-teal-400/50"></span><span>${cm}</span>
+         </div>`);
+    }
+  }
+  depth.addEventListener('input', drawDepthScale);
+  drawDepthScale();
+
+  // ---- Keyboard shortcuts, as on a console keypad -------------------------
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    const k = e.key.toLowerCase();
+    if (k === ' ')     { e.preventDefault(); $$('[data-act="freeze"]').click(); }
+    if (k === 'f')     $$('[data-act="fullscreen"]').click();
+    if (k === 'g')     $$('[data-act="grid"]').click();
+    if (k === 'i')     $$('[data-act="invert"]').click();
+    if (k === 's')     $$('[data-act="spotlight"]').click();
+    if (k === 'm')     $$('[data-act="mirror"]').click();
+    if (k === 'c')     $$('[data-act="capture"]').click();
+    if (k === 'r')     $$('[data-act="reset"]').click();
+    if (k === 'arrowleft')  $$('[data-act="step-back"]').click();
+    if (k === 'arrowright') $$('[data-act="step-fwd"]').click();
+  });
+
+  // ---- Readouts -----------------------------------------------------------
+  let seconds = 0;
+  setInterval(() => {
+    if (video.paused) return;
+    seconds++;
+    const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+    const s = String(seconds % 60).padStart(2, '0');
+    document.getElementById('clock').textContent = `${m}:${s}`;
+  }, 1000);
+
+  // Real frame counter, not a fake number
+  let frames = 0, last = performance.now();
+  const fpsEl = document.getElementById('fps');
+  (function count(now) {
+    frames++;
+    if (now - last >= 1000) {
+      fpsEl.textContent = frames;
+      frames = 0;
+      last = now;
+    }
+    requestAnimationFrame(count);
+  })(performance.now());
+</script>
+
+</body>
+</html>
