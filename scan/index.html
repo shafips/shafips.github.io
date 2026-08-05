@@ -252,61 +252,46 @@
 
   <!-- Bottom: control panel (pointer-events re-enabled here) -->
   <div class="pointer-events-auto absolute inset-x-0 bottom-0 p-6">
-    <div class="mx-auto flex max-w-4xl flex-col gap-4 rounded-lg border border-teal-400/25
-                bg-black/60 p-5 backdrop-blur-md shadow-[0_0_40px_rgba(45,212,191,0.08)]">
+    <div class="mx-auto flex w-fit flex-wrap items-center justify-center gap-x-6 gap-y-2
+                rounded-lg border border-teal-400/25 bg-black/60 px-5 py-3 backdrop-blur-md
+                shadow-[0_0_40px_rgba(45,212,191,0.08)]">
 
-      <!-- Imaging mode + exam preset rows -->
-      <div class="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-teal-400/15 pb-4">
-        <div class="flex items-center gap-2">
-          <span class="mr-1 text-[10px] uppercase tracking-[0.2em] text-teal-500/60">Mode</span>
-          <button data-mode="B" class="mode-btn rounded border border-teal-400/40 bg-teal-400/20 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/25">B</button>
-          <button data-mode="M" class="mode-btn rounded border border-teal-400/40 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/15">M</button>
-          <button data-mode="Color" class="mode-btn rounded border border-teal-400/40 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/15">Color</button>
-          <button data-mode="Power" class="mode-btn rounded border border-teal-400/40 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/15">Power</button>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <span class="mr-1 text-[10px] uppercase tracking-[0.2em] text-teal-500/60">Preset</span>
-          <button data-preset="Abdominal" class="preset-btn rounded border border-teal-400/30 bg-teal-400/20 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/25">Abdo</button>
-          <button data-preset="Obstetric" class="preset-btn rounded border border-teal-400/30 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/15">OB</button>
-          <button data-preset="Cardiac" class="preset-btn rounded border border-teal-400/30 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/15">Cardiac</button>
-          <button data-preset="Vascular" class="preset-btn rounded border border-teal-400/30 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/15">Vascular</button>
-        </div>
+      <!-- Source: one button per clip -->
+      <div class="flex items-center gap-2">
+        <span class="mr-1 text-[10px] uppercase tracking-[0.2em] text-teal-500/60">Source</span>
+        <button data-src="create_a_ultrashoud_scan_video.mp4"
+          class="src-btn rounded border border-teal-400/40 px-3 py-1.5 text-[11px] uppercase
+                 tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/25">
+          Ultrasound
+        </button>
+        <button data-src="create_another_minimal_move_vi.mp4"
+          class="src-btn rounded border border-teal-400/40 bg-teal-400/20 px-3 py-1.5 text-[11px]
+                 uppercase tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/25">
+          Motion
+        </button>
       </div>
 
-      <!-- Core sliders -->
-      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <label class="flex flex-col gap-2">
-          <span class="flex justify-between text-[10px] uppercase tracking-[0.2em] text-teal-500/80">
-            Gain <span class="tabular-nums text-teal-300" id="gain-val">100%</span>
-          </span>
-          <input id="gain" type="range" min="40" max="180" value="100" class="w-full">
-        </label>
+      <button data-act="freeze"
+        class="rounded border border-teal-400/40 px-4 py-2 text-[11px] uppercase tracking-[0.2em]
+               text-teal-300 transition hover:bg-teal-400/15 active:scale-95">
+        Freeze
+      </button>
 
-        <label class="flex flex-col gap-2">
-          <span class="flex justify-between text-[10px] uppercase tracking-[0.2em] text-teal-500/80">
-            Depth <span class="tabular-nums text-teal-300" id="depth-val">420px</span>
-          </span>
-          <input id="depth" type="range" min="120" max="1200" value="420" class="w-full">
-        </label>
-
-        <label class="flex flex-col gap-2">
-          <span class="flex justify-between text-[10px] uppercase tracking-[0.2em] text-teal-500/80">
-            Contrast <span class="tabular-nums text-teal-300" id="contrast-val">100%</span>
-          </span>
-          <input id="contrast" type="range" min="50" max="250" value="100" class="w-full">
-        </label>
-
-        <label class="flex flex-col gap-2">
-          <span class="flex justify-between text-[10px] uppercase tracking-[0.2em] text-teal-500/80">
-            Speed <span class="tabular-nums text-teal-300" id="speed-val">1.0x</span>
-          </span>
-          <input id="speed" type="range" min="25" max="200" value="100" class="w-full">
-        </label>
+      <div class="text-[10px] uppercase tracking-[0.2em] text-teal-500/50">
+        Space Freeze &middot; V Source &middot; G Grid &middot; F Full &middot; C Capture
       </div>
 
-      <!-- Hidden controls: still driven by modes/presets/reset, just not shown -->
+      <!-- Off-panel controls: keyboard-driven, kept in the DOM so the
+           handlers, presets and Reset continue to work. -->
       <div class="hidden">
+        <input id="gain" type="range" min="40" max="180" value="100">
+        <span id="gain-val"></span>
+        <input id="depth" type="range" min="120" max="1200" value="420">
+        <span id="depth-val"></span>
+        <input id="contrast" type="range" min="50" max="250" value="100">
+        <span id="contrast-val"></span>
+        <input id="speed" type="range" min="25" max="200" value="100">
+        <span id="speed-val"></span>
         <input id="focus" type="range" min="0" max="60" value="0">
         <span id="focus-val"></span>
         <input id="tint" type="range" min="0" max="360" value="0">
@@ -319,52 +304,27 @@
         <span id="edge-val"></span>
         <input id="seek" type="range" min="0" max="1000" value="0">
         <span id="time-val"></span>
-      </div>
 
-      <!-- Buttons -->
-      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-teal-400/15 pt-4">
-        <div class="flex flex-wrap gap-2">
-          <button data-act="freeze"
-            class="rounded border border-teal-400/40 px-4 py-2 text-[11px] uppercase tracking-[0.2em]
-                   text-teal-300 transition hover:bg-teal-400/15 active:scale-95">
-            Freeze
-          </button>
-          <button data-act="capture"
-            class="rounded border border-teal-400/40 px-4 py-2 text-[11px] uppercase tracking-[0.2em]
-                   text-teal-300 transition hover:bg-teal-400/15 active:scale-95">
-            Capture
-          </button>
-          <button data-act="grid"
-            class="rounded border border-teal-400/40 px-4 py-2 text-[11px] uppercase tracking-[0.2em]
-                   text-teal-300 transition hover:bg-teal-400/15 active:scale-95">
-            Grid
-          </button>
-          <button data-act="fullscreen"
-            class="rounded border border-teal-400/40 px-4 py-2 text-[11px] uppercase tracking-[0.2em]
-                   text-teal-300 transition hover:bg-teal-400/15 active:scale-95">
-            Fullscreen
-          </button>
-          <button data-act="reset"
-            class="rounded border border-teal-400/25 px-4 py-2 text-[11px] uppercase tracking-[0.2em]
-                   text-teal-500/70 transition hover:bg-teal-400/10 active:scale-95">
-            Reset
-          </button>
-        </div>
+        <button data-act="capture"></button>
+        <button data-act="grid"></button>
+        <button data-act="fullscreen"></button>
+        <button data-act="reset"></button>
+        <button data-act="invert"></button>
+        <button data-act="spotlight"></button>
+        <button data-act="mirror"></button>
+        <button data-act="raster"></button>
+        <button data-act="step-back"></button>
+        <button data-act="step-fwd"></button>
 
-        <!-- Off-panel controls: keyboard-driven, kept in the DOM so the
-             handlers, presets and Reset continue to work. -->
-        <div class="hidden">
-          <button data-act="invert"></button>
-          <button data-act="spotlight"></button>
-          <button data-act="mirror"></button>
-          <button data-act="raster"></button>
-          <button data-act="step-back"></button>
-          <button data-act="step-fwd"></button>
-        </div>
+        <button data-mode="B" class="mode-btn"></button>
+        <button data-mode="M" class="mode-btn"></button>
+        <button data-mode="Color" class="mode-btn"></button>
+        <button data-mode="Power" class="mode-btn"></button>
 
-        <div class="text-[10px] uppercase tracking-[0.2em] text-teal-500/50">
-          Space Freeze &middot; I Invert &middot; S Spotlight &middot; &larr;&rarr; Step
-        </div>
+        <button data-preset="Abdominal" class="preset-btn"></button>
+        <button data-preset="Obstetric" class="preset-btn"></button>
+        <button data-preset="Cardiac" class="preset-btn"></button>
+        <button data-preset="Vascular" class="preset-btn"></button>
       </div>
     </div>
   </div>
@@ -435,10 +395,52 @@
   video.addEventListener('ended', () => { video.currentTime = 0; play(); });
 
   video.addEventListener('error', () => {
-    document.body.insertAdjacentHTML('beforeend',
-      '<p class="fixed inset-0 z-20 grid place-content-center text-center text-sm text-teal-500">' +
-      'Signal lost &mdash; could not load create_another_minimal_move_vi.mp4</p>');
+    const src = video.getAttribute('src');
+    let banner = document.getElementById('signal-lost');
+    if (!banner) {
+      document.body.insertAdjacentHTML('beforeend',
+        '<p id="signal-lost" class="fixed inset-0 z-20 grid place-content-center ' +
+        'text-center text-sm text-teal-500"></p>');
+      banner = document.getElementById('signal-lost');
+    }
+    banner.textContent = `Signal lost — could not load ${src}`;
   });
+
+  // A source that loads clears any previous failure notice.
+  video.addEventListener('loadeddata', () => {
+    document.getElementById('signal-lost')?.remove();
+  });
+
+  // ---- Source switching ---------------------------------------------------
+  // Swapping `src` resets the element, so playback rate and freeze state have
+  // to be re-applied once the new clip has metadata.
+  const srcButtons = [...document.querySelectorAll('.src-btn')];
+
+  function selectSource(btn) {
+    const next = btn.dataset.src;
+    if (video.getAttribute('src') === next) return;
+
+    const wasPaused = video.paused;
+
+    srcButtons.forEach(b => b.classList.toggle('bg-teal-400/20', b === btn));
+
+    video.addEventListener('loadedmetadata', () => {
+      video.playbackRate = speed.value / 100;
+      if (wasPaused) { video.pause(); syncSweep(); }
+      else play();
+    }, { once: true });
+
+    video.setAttribute('src', next);
+    video.load();
+  }
+
+  srcButtons.forEach(btn => btn.addEventListener('click', () => selectSource(btn)));
+
+  // Cycle to the next clip — used by the V shortcut.
+  function cycleSource() {
+    const i = srcButtons.findIndex(b => b.dataset.src === video.getAttribute('src'));
+    selectSource(srcButtons[(i + 1) % srcButtons.length]);
+  }
 
   // ---- Controls -----------------------------------------------------------
   const $  = id => document.getElementById(id);
@@ -745,6 +747,7 @@
     if (k === 'm')     $$('[data-act="mirror"]').click();
     if (k === 'c')     $$('[data-act="capture"]').click();
     if (k === 'r')     $$('[data-act="reset"]').click();
+    if (k === 'v')     cycleSource();
     if (k === 'arrowleft')  $$('[data-act="step-back"]').click();
     if (k === 'arrowright') $$('[data-act="step-fwd"]').click();
   });
