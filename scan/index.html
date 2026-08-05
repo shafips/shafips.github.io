@@ -194,7 +194,7 @@
 
 <video
   id="video-bg"
-  src="create_another_minimal_move_vi.mp4"
+  src="baby.mp4"
   autoplay muted loop playsinline preload="auto"
   disablepictureinpicture disableremoteplayback>
 </video>
@@ -233,10 +233,10 @@
           <span id="acq-state">Live</span>
         </span>
         <span class="text-teal-500/60">ID <span class="text-teal-300">ANON-004821</span></span>
-        <span class="text-teal-500/60">Study <span class="text-teal-300" id="exam-label">Abdominal</span></span>
-        <span class="text-teal-500/60">Probe <span class="text-teal-300" id="probe-label">C5-2</span></span>
-        <span class="text-teal-500/60">MI <span class="text-teal-300 tabular-nums" id="mi">0.8</span></span>
-        <span class="text-teal-500/60">TIS <span class="text-teal-300 tabular-nums" id="tis">0.3</span></span>
+        <span class="text-teal-500/60">Study <span class="text-teal-300">Abdominal</span></span>
+        <span class="text-teal-500/60">Probe <span class="text-teal-300">C5-2</span></span>
+        <span class="text-teal-500/60">MI <span class="text-teal-300 tabular-nums">0.8</span></span>
+        <span class="text-teal-500/60">TIS <span class="text-teal-300 tabular-nums">0.3</span></span>
       </div>
       <div class="flex items-center gap-6">
         <span class="text-teal-500/60">FR <span class="text-teal-300 tabular-nums" id="fps">--</span> Hz</span>
@@ -256,19 +256,17 @@
                 rounded-lg border border-teal-400/25 bg-black/60 px-5 py-3 backdrop-blur-md
                 shadow-[0_0_40px_rgba(45,212,191,0.08)]">
 
-      <!-- Source: one button per clip -->
+      <!-- Source: a dropdown of the available clips -->
       <div class="flex items-center gap-2">
-        <span class="mr-1 text-[10px] uppercase tracking-[0.2em] text-teal-500/60">Source</span>
-        <button data-src="create_a_ultrashoud_scan_video.mp4"
-          class="src-btn rounded border border-teal-400/40 px-3 py-1.5 text-[11px] uppercase
-                 tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/25">
-          Ultrasound
-        </button>
-        <button data-src="create_another_minimal_move_vi.mp4"
-          class="src-btn rounded border border-teal-400/40 bg-teal-400/20 px-3 py-1.5 text-[11px]
-                 uppercase tracking-[0.2em] text-teal-300 transition hover:bg-teal-400/25">
-          Motion
-        </button>
+        <label for="source" class="text-[10px] uppercase tracking-[0.2em] text-teal-500/60">Source</label>
+        <select id="source"
+          class="cursor-pointer rounded border border-teal-400/40 bg-black/70 px-3 py-1.5
+                 text-[11px] uppercase tracking-[0.2em] text-teal-300 outline-none transition
+                 hover:bg-teal-400/15 focus:border-teal-400/80">
+          <option value="baby.mp4">Obstetric</option>
+          <option value="worm.mp4">Motion</option>
+          <option value="food-full.mp4">Abdominal</option>
+        </select>
       </div>
 
       <button data-act="freeze"
@@ -312,19 +310,8 @@
         <button data-act="invert"></button>
         <button data-act="spotlight"></button>
         <button data-act="mirror"></button>
-        <button data-act="raster"></button>
         <button data-act="step-back"></button>
         <button data-act="step-fwd"></button>
-
-        <button data-mode="B" class="mode-btn"></button>
-        <button data-mode="M" class="mode-btn"></button>
-        <button data-mode="Color" class="mode-btn"></button>
-        <button data-mode="Power" class="mode-btn"></button>
-
-        <button data-preset="Abdominal" class="preset-btn"></button>
-        <button data-preset="Obstetric" class="preset-btn"></button>
-        <button data-preset="Cardiac" class="preset-btn"></button>
-        <button data-preset="Vascular" class="preset-btn"></button>
       </div>
     </div>
   </div>
@@ -414,15 +401,17 @@
   // ---- Source switching ---------------------------------------------------
   // Swapping `src` resets the element, so playback rate and freeze state have
   // to be re-applied once the new clip has metadata.
-  const srcButtons = [...document.querySelectorAll('.src-btn')];
+  const sourceSelect = document.getElementById('source');
 
-  function selectSource(btn) {
-    const next = btn.dataset.src;
+  // Keep the dropdown showing whatever is actually loaded, so the two never
+  // drift apart (e.g. after the V shortcut).
+  sourceSelect.value = video.getAttribute('src');
+
+  function selectSource(next) {
     if (video.getAttribute('src') === next) return;
 
     const wasPaused = video.paused;
-
-    srcButtons.forEach(b => b.classList.toggle('bg-teal-400/20', b === btn));
+    sourceSelect.value = next;
 
     video.addEventListener('loadedmetadata', () => {
       video.playbackRate = speed.value / 100;
@@ -434,12 +423,13 @@
     video.load();
   }
 
-  srcButtons.forEach(btn => btn.addEventListener('click', () => selectSource(btn)));
+  sourceSelect.addEventListener('change', () => selectSource(sourceSelect.value));
 
   // Cycle to the next clip — used by the V shortcut.
   function cycleSource() {
-    const i = srcButtons.findIndex(b => b.dataset.src === video.getAttribute('src'));
-    selectSource(srcButtons[(i + 1) % srcButtons.length]);
+    const opts = [...sourceSelect.options];
+    const i = opts.findIndex(o => o.value === video.getAttribute('src'));
+    selectSource(opts[(i + 1) % opts.length].value);
   }
 
   // ---- Controls -----------------------------------------------------------
@@ -617,11 +607,6 @@
         btn.classList.toggle('bg-teal-400/20', !$('grid').classList.contains('hidden'));
       }
 
-      if (act === 'raster') {
-        const on = $('raster').classList.toggle('hidden');
-        btn.textContent = 'Raster: ' + (on ? 'Off' : 'On');
-      }
-
       if (act === 'spotlight') {
         spotlightOn = !spotlightOn;
         btn.textContent = 'Spotlight: ' + (spotlightOn ? 'On' : 'Off');
@@ -661,63 +646,6 @@
     });
   });
 
-  // ---- Imaging modes ------------------------------------------------------
-  // Each mode maps to a distinct look, so switching is visibly real.
-  const MODES = {
-    B:     { tint: 0,   contrast: 100, label: 'B / 2D'   },
-    M:     { tint: 0,   contrast: 165, label: 'M-Mode'   },
-    Color: { tint: 200, contrast: 120, label: 'Color Doppler' },
-    Power: { tint: 320, contrast: 135, label: 'Power Doppler' }
-  };
-
-  let activeMode = 'B';
-
-  document.querySelectorAll('.mode-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      activeMode = btn.dataset.mode;
-      const m = MODES[activeMode];
-
-      document.querySelectorAll('.mode-btn').forEach(b =>
-        b.classList.toggle('bg-teal-400/20', b === btn));
-
-      tint.value = m.tint;         tint.dispatchEvent(new Event('input'));
-      contrast.value = m.contrast; contrast.dispatchEvent(new Event('input'));
-
-      // M-mode sweeps a single line — show the scanline moving fast.
-      $('scanline').style.display = activeMode === 'M' ? 'block' : '';
-      if (activeMode === 'M') {
-        sweep.value = 10; sweep.dispatchEvent(new Event('input'));
-      }
-    });
-  });
-
-  // ---- Exam presets -------------------------------------------------------
-  const PRESETS = {
-    Abdominal: { probe: 'C5-2',  mi: '0.8', tis: '0.3', gain: 100, depth: 420, contrast: 100 },
-    Obstetric: { probe: 'C1-5',  mi: '0.4', tis: '0.2', gain: 115, depth: 520, contrast: 95  },
-    Cardiac:   { probe: 'P4-2',  mi: '1.1', tis: '0.5', gain: 90,  depth: 340, contrast: 140 },
-    Vascular:  { probe: 'L12-3', mi: '0.9', tis: '0.4', gain: 125, depth: 260, contrast: 120 }
-  };
-
-  document.querySelectorAll('.preset-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const name = btn.dataset.preset;
-      const p = PRESETS[name];
-
-      document.querySelectorAll('.preset-btn').forEach(b =>
-        b.classList.toggle('bg-teal-400/20', b === btn));
-
-      $('exam-label').textContent = name;
-      $('probe-label').textContent = p.probe;
-      $('mi').textContent  = p.mi;
-      $('tis').textContent = p.tis;
-
-      gain.value = p.gain;         gain.dispatchEvent(new Event('input'));
-      depth.value = p.depth;       depth.dispatchEvent(new Event('input'));
-      contrast.value = p.contrast; contrast.dispatchEvent(new Event('input'));
-    });
-  });
-
   // ---- Depth scale (cm markers down the left rail) ------------------------
   function drawDepthScale() {
     // Map the spotlight radius to a plausible cm depth: bigger radius = deeper field
@@ -737,7 +665,9 @@
 
   // ---- Keyboard shortcuts, as on a console keypad -------------------------
   document.addEventListener('keydown', e => {
-    if (e.target.tagName === 'INPUT') return;
+    // Ignore keys aimed at a focused control — arrows and space belong to the
+    // dropdown while it has focus, not to the console shortcuts.
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
     const k = e.key.toLowerCase();
     if (k === ' ')     { e.preventDefault(); $$('[data-act="freeze"]').click(); }
     if (k === 'f')     $$('[data-act="fullscreen"]').click();
