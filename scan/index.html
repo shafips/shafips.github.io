@@ -155,6 +155,26 @@
   @keyframes flash { from { opacity: 0.85; } to { opacity: 0; } }
   .flash { animation: flash 400ms ease-out forwards; }
 
+  /* Source dropdown. The native arrow sits flush against the edge and cannot
+     be padded, so it is suppressed and redrawn as a background image — that
+     lets `background-position` hold it clear of the border. */
+  #source {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6' fill='none' stroke='%232dd4bf' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;   /* the gap from the border */
+    background-size: 10px 6px;
+  }
+
+  /* The popup list is drawn by the OS, so it needs explicit colours or it
+     falls back to a white menu that clashes with the console. */
+  #source option {
+    background: #000;
+    color: #5eead4;
+  }
+
   /* Range inputs, restyled to match the HUD */
   input[type="range"] {
     -webkit-appearance: none;
@@ -235,8 +255,8 @@
         <span class="text-teal-500/60">ID <span class="text-teal-300">ANON-004821</span></span>
         <span class="text-teal-500/60">Study <span class="text-teal-300">Abdominal</span></span>
         <span class="text-teal-500/60">Probe <span class="text-teal-300">C5-2</span></span>
-        <span class="text-teal-500/60">MI <span class="text-teal-300 tabular-nums">0.8</span></span>
-        <span class="text-teal-500/60">TIS <span class="text-teal-300 tabular-nums">0.3</span></span>
+        <span class="text-teal-500/60">MI <span class="text-teal-300 tabular-nums" id="mi">0.80</span></span>
+        <span class="text-teal-500/60">TIS <span class="text-teal-300 tabular-nums" id="tis">0.30</span></span>
       </div>
       <div class="flex items-center gap-6">
         <span class="text-teal-500/60">FR <span class="text-teal-300 tabular-nums" id="fps">--</span> Hz</span>
@@ -245,10 +265,72 @@
     </div>
   </div>
 
+  <!-- Large telemetry, top right. Sits below the header bar and inboard of
+       the corner bracket so neither is obscured. -->
+  <div class="absolute right-8 top-20 flex flex-col items-end gap-3 text-right">
+
+    <div>
+      <div class="text-[9px] uppercase tracking-[0.25em] text-teal-500/60">Depth</div>
+      <div class="flex items-baseline justify-end gap-1">
+        <span id="big-depth"
+              class="text-5xl font-bold leading-none tabular-nums text-teal-300
+                     [text-shadow:0_0_18px_rgba(45,212,191,0.55)]">0.0</span>
+        <span class="text-sm text-teal-500/70">cm</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="text-[9px] uppercase tracking-[0.25em] text-teal-500/60">Velocity</div>
+      <div class="flex items-baseline justify-end gap-1">
+        <span id="big-vel"
+              class="text-4xl font-bold leading-none tabular-nums text-teal-300
+                     [text-shadow:0_0_18px_rgba(45,212,191,0.55)]">0.0</span>
+        <span class="text-sm text-teal-500/70">cm/s</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="text-[9px] uppercase tracking-[0.25em] text-teal-500/60">Lateral</div>
+      <div class="flex items-baseline justify-end gap-1">
+        <span id="big-lat"
+              class="text-3xl font-bold leading-none tabular-nums text-teal-300/90">0.0</span>
+        <span class="text-sm text-teal-500/70">cm</span>
+      </div>
+    </div>
+
+    <!-- Signal strength, a bar meter that fills with probe speed -->
+    <div class="mt-1 w-32">
+      <div class="mb-1 text-[9px] uppercase tracking-[0.25em] text-teal-500/60">Signal</div>
+      <div class="h-1.5 w-full overflow-hidden rounded-sm bg-teal-400/15">
+        <div id="big-signal" class="h-full w-0 bg-teal-400 shadow-[0_0_10px_#2dd4bf]
+                                    transition-[width] duration-150 ease-out"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Left rail: depth scale, like the cm markers beside a real image -->
   <div id="depth-scale"
        class="absolute left-6 top-24 bottom-40 flex w-10 flex-col justify-between
               text-[9px] tabular-nums text-teal-400/70"></div>
+
+  <!-- Caliper crosshair: X and Y lines that ride with the pointer. Each axis
+       is its own element so it can be translated on a single axis only. -->
+  <div id="caliper" class="hidden">
+
+    <!-- Horizontal: depth -->
+    <div id="caliper-y" class="absolute inset-x-0 top-0 will-change-transform">
+      <div class="h-px w-full bg-teal-300/40"></div>
+      <div class="absolute left-6 top-0 -translate-y-1/2 rounded-sm bg-teal-400/85 px-1
+                  text-[9px] font-bold tabular-nums text-black" id="caliper-depth">0.0</div>
+    </div>
+
+    <!-- Vertical: lateral offset -->
+    <div id="caliper-x" class="absolute inset-y-0 left-0 will-change-transform">
+      <div class="h-full w-px bg-teal-300/40"></div>
+      <div class="absolute bottom-28 left-0 -translate-x-1/2 rounded-sm bg-teal-400/85 px-1
+                  text-[9px] font-bold tabular-nums text-black" id="caliper-lat">0.0</div>
+    </div>
+  </div>
 
   <!-- Bottom: control panel (pointer-events re-enabled here) -->
   <div class="pointer-events-auto absolute inset-x-0 bottom-0 p-6">
@@ -260,12 +342,12 @@
       <div class="flex items-center gap-2">
         <label for="source" class="text-[10px] uppercase tracking-[0.2em] text-teal-500/60">Source</label>
         <select id="source"
-          class="cursor-pointer rounded border border-teal-400/40 bg-black/70 px-3 py-1.5
+          class="cursor-pointer rounded border border-teal-400/40 bg-black/70 py-1.5 pl-3 pr-9
                  text-[11px] uppercase tracking-[0.2em] text-teal-300 outline-none transition
                  hover:bg-teal-400/15 focus:border-teal-400/80">
-          <option value="baby.mp4">Obstetric</option>
-          <option value="worm.mp4">Motion</option>
-          <option value="food-full.mp4">Abdominal</option>
+          <option value="baby.mp4">Baby</option>
+          <option value="worm.mp4">Worm</option>
+          <option value="food-full.mp4">Food Full</option>
         </select>
       </div>
 
@@ -338,6 +420,11 @@
     track.queued = true;
     requestAnimationFrame(() => {
       track.queued = false;
+
+      // Readouts track the probe regardless of the spotlight, so turning the
+      // beam off does not freeze the console.
+      readProbe(pending);
+
       if (!spotlightOn) return;
       overlay.classList.remove('idle');
       overlay.style.setProperty('--x', pending.clientX + 'px');
@@ -345,21 +432,87 @@
     });
   }
 
+  // ---- Probe telemetry ----------------------------------------------------
+  // The cursor stands in for the transducer: where it sits gives lateral and
+  // depth position, and how fast it moves stands in for scan speed. MI and TIS
+  // rise with that speed the way acoustic output does under harder scanning.
+  const caliper = document.getElementById('caliper');
+  const calY    = document.getElementById('caliper-y');
+  const calX    = document.getElementById('caliper-x');
+
+  let lastPt = null;    // previous sample, for velocity
+  let velCm = 0;        // smoothed, so the readout does not jitter
+
+  function readProbe(e) {
+    const x = e.clientX, y = e.clientY;
+    const w = innerWidth, h = innerHeight;
+
+    // Screen height maps to the field depth shown on the left rail, so the
+    // caliper and the rail markers always agree.
+    const maxCm = Math.max(1, Math.round(depth.value / 40));
+    const pxPerCm = h / maxCm;
+
+    const depthCm = (y / h) * maxCm;
+    const latCm   = ((x - w / 2) / pxPerCm);
+
+    // Velocity from the distance covered since the last sample.
+    if (lastPt) {
+      const dt = Math.max(16, e.timeStamp - lastPt.t) / 1000;
+      const dCm = Math.hypot(x - lastPt.x, y - lastPt.y) / pxPerCm;
+      velCm = velCm * 0.8 + (dCm / dt) * 0.2;   // exponential smoothing
+    }
+    lastPt = { x, y, t: e.timeStamp };
+
+    $('big-depth').textContent = depthCm.toFixed(1);
+    $('big-vel').textContent   = velCm.toFixed(1);
+    $('big-lat').textContent   = (latCm >= 0 ? '+' : '') + latCm.toFixed(1);
+
+    // Signal meter saturates at a brisk 40 cm/s sweep.
+    $('big-signal').style.width = Math.min(100, (velCm / 40) * 100).toFixed(0) + '%';
+
+    // Faster sweeping reads as more acoustic output, capped at plausible
+    // regulatory limits (MI 1.9, TIS 2.0).
+    $('mi').textContent  = Math.min(1.9, 0.4 + velCm * 0.03).toFixed(2);
+    $('tis').textContent = Math.min(2.0, 0.2 + velCm * 0.02).toFixed(2);
+
+    // Crosshair. Each axis moves on one axis only, so the labels stay upright
+    // and the lines keep spanning the full viewport.
+    caliper.classList.remove('hidden');
+    calY.style.transform = `translateY(${y}px)`;
+    calX.style.transform = `translateX(${x}px)`;
+    $('caliper-depth').textContent = depthCm.toFixed(1);
+    $('caliper-lat').textContent   = (latCm >= 0 ? '+' : '') + latCm.toFixed(1);
+  }
+
   // Cursor stopped or left — dim back to a full wash instead of leaving a
   // bright spot stranded at the last hovered point.
   function rest() {
     clearTimeout(restTimer);
     overlay.classList.add('idle');
-  }
 
-  document.addEventListener('mousemove', track, { passive: true });
+    // Output settles back to baseline once the probe is still. Depth and
+    // lateral hold their last reading — the probe is parked, not removed.
+    velCm = 0;
+    lastPt = null;
+    $('big-vel').textContent = '0.0';
+    $('big-signal').style.width = '0%';
+    $('mi').textContent  = '0.40';
+    $('tis').textContent = '0.20';
+  }
 
   // `mouseleave` on document is unreliable; `mouseout` with no relatedTarget
   // is the dependable signal that the pointer actually left the window.
+  // The caliper stays parked when the cursor merely pauses, but is withdrawn
+  // once the pointer actually leaves — there is no probe on the patient then.
+  function leave() {
+    rest();
+    caliper.classList.add('hidden');
+  }
+
   document.addEventListener('mouseout', e => {
-    if (!e.relatedTarget) rest();
+    if (!e.relatedTarget) leave();
   });
-  window.addEventListener('blur', rest);
+  window.addEventListener('blur', leave);
 
   if (!matchMedia('(hover: hover)').matches) overlay.classList.add('idle');
 
@@ -470,6 +623,10 @@
   const sweep    = $('sweep');
   const edge     = $('edge');
   const seek     = $('seek');
+
+  // Registered here, not beside `track`: readProbe reads `depth` and `$`,
+  // which are declared above this line and are not hoisted.
+  document.addEventListener('mousemove', track, { passive: true });
 
   let inverted = false;
   let mirrored = false;
