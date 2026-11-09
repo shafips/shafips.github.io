@@ -1,0 +1,178 @@
+/* =====================================================================
+   Aqari Platform
+   A rounded background panel inside a light blue-to-white frame, with an iPhone-like notch
+   at the top centre holding the "Aqari Platform" logo; "Sharjah at Gitex" sits
+   on the left and Government of Sharjah on the right.
+   ===================================================================== */
+
+/* ---------- fonts (only the files in /fonts) ---------- */
+@font-face { font-family: "29LT Kaff"; src: url("../fonts/29LT Kaff Light.ttf") format("truetype"); font-weight: 300; font-display: block; }
+@font-face { font-family: "29LT Kaff"; src: url("../fonts/29LT Kaff.ttf") format("truetype"); font-weight: 400; font-display: block; }
+@font-face { font-family: "29LT Kaff"; src: url("../fonts/29LT Kaff Medium.ttf") format("truetype"); font-weight: 500; font-display: block; }
+@font-face { font-family: "29LT Kaff"; src: url("../fonts/29LT Kaff Semi Bold.ttf") format("truetype"); font-weight: 600 700; font-display: block; }
+
+/* ---------- one fixed page: 1920 x 1080, scaled to fit ----------
+   No responsive layouts. The body is always exactly 1920 x 1080 (Full HD) and centred on the
+   screen; every fixed layer (frame, background, header, notch, slides) sits inside it. The script
+   in index.html sets --zoom to the largest scale at which 1920 x 1080 fits the screen (the smaller
+   of width / 1920 and height / 1080), and the whole page is zoomed by it. A 16:9 screen is filled
+   exactly; any other shape shows the frame colour in the space left beside or above the page.
+   Every size in px below is a Full HD pixel. */
+:root {
+  --zoom: 1;
+  --page-w: 1920px;
+  --page-h: 1080px;
+  zoom: var(--zoom);
+}
+
+/* ---------- tokens ---------- */
+:root {
+  --ink: #010101;                  /* logo black */
+  --orange: #e16b25;               /* "Sharjah at Gitex" Arabic */
+  --bg-tint: #d0e1ea;             /* average of the background image, shown until it arrives */
+  --gutter: 56px;                /* side logos' distance from the left / right edge of the background */
+  --frame-gap: 23px;         /* frame strip between the screen edge and the background */
+  --frame-top: max(var(--frame-gap), env(safe-area-inset-top));
+  --frame-radius: 30px;      /* the background's rounded corners */
+  /* the frame, notch included: light blue on the left, light grey in the middle (behind the
+     notch), white on the right */
+  --frame-left: #b8dce8;
+  --frame-middle: #e7e8ed;
+  --frame-right: #ffffff;
+  --frame-fill: linear-gradient(to right, var(--frame-left), var(--frame-middle), var(--frame-right));
+  --notch-radius: 26px;      /* the notch's rounded bottom corners */
+  --notch-shoulder: 19px;      /* the inward curves where the notch meets the top edge */
+  --header-pad: 15px;         /* side logos' distance below the top edge */
+  --font: "29LT Kaff", sans-serif;
+  color-scheme: light;
+}
+
+/* ---------- base ---------- */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+/* the space around the page on screens that aren't 16:9: above and below the page, the frame's
+   gradient (same width as the page, so it lines up); beside a page on a wider screen, each side
+   in the colour of the frame edge it touches (light blue left, white right), so there's no seam */
+html { background: var(--frame-fill); }
+@media (min-aspect-ratio: 16/9) {
+  html { background: linear-gradient(to right, var(--frame-left) 50%, var(--frame-right) 50%); }
+}
+body {
+  /* the page: 1920 x 1080, centred. The translate also makes the body the box that the fixed
+     layers inside it are positioned against, instead of the browser window. */
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: var(--page-w);
+  height: var(--page-h);
+  translate: -50% -50%;
+  overflow: hidden;
+  color: var(--ink);
+  font-family: var(--font);
+  /* no background here: a body background would paint over the fixed layers at z-index < 0 */
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- frame + background ----------
+   Two fixed layers (not `background-attachment: fixed`, which iOS ignores): the frame gradient
+   filling the screen, and over it the background image, inset from the screen edges with
+   rounded corners. Both stay put while the page scrolls; the image always fills its box,
+   cropping as needed. */
+.page-frame {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: var(--frame-fill);
+}
+.page-bg {
+  position: fixed;
+  top: var(--frame-top);
+  right: max(var(--frame-gap), env(safe-area-inset-right));
+  bottom: max(var(--frame-gap), env(safe-area-inset-bottom));
+  left: max(var(--frame-gap), env(safe-area-inset-left));
+  z-index: -1;
+  border-radius: var(--frame-radius);
+  overflow: hidden;                     /* clips the animation canvas to the rounded corners */
+  /* the background image: always visible, the moving colour blobs drift over it */
+  background: var(--bg-tint) url("../images/mainbg2-2560.webp") center / cover no-repeat;
+}
+/* the moving colour blobs (js/main.js): a see-through layer over the image, faded in once its
+   first frame is drawn; left out if WebGL is unavailable or reduced motion is preferred */
+#bgCosmic {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+#bgCosmic.is-ready { opacity: 1; }
+
+/* ---------- header ----------
+   The side logos sit at the left and right, inside the frame; the centre logo lives in the notch. */
+.site-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: calc(var(--frame-top) + var(--header-pad)) calc(var(--frame-gap) + var(--gutter)) var(--header-pad);
+}
+/* ---------- notch ----------
+   A tab hanging from the top of the screen in the frame's gradient, centred, with rounded bottom corners and
+   inward-curving shoulders where it meets the top edge of the background (like an iPhone's). */
+.notch {
+  /* the notch's size: its width, and its height below the top edge of the background */
+  --notch-w: 510px;
+  --notch-body-h: 67px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin-inline: auto;                  /* centred without a transform (keeps edges on whole pixels) */
+  width: var(--notch-w);
+  height: calc(var(--frame-top) + var(--notch-body-h));
+  display: grid;
+  place-items: center;
+  /* the notch reads as one shape from the top of the screen, so the logo is centred in that
+     whole shape: half the strip's thickness moves from above it to below.
+     (On phones with a status-bar inset the extra inset still stays above the logo.) */
+  padding: calc(var(--frame-top) - var(--frame-gap) / 2) 0 calc(var(--frame-gap) / 2);
+  /* the frame's gradient, one screen wide and shifted left by the notch's own offset from the
+     left edge of the screen, so the notch carries on the strip's colours without a seam */
+  --notch-x: calc((var(--page-w) - var(--notch-w)) / 2);
+  background: var(--frame-fill) calc(-1 * var(--notch-x)) 0 / var(--page-w) 100% no-repeat;
+  border-radius: 0 0 var(--notch-radius) var(--notch-radius);
+}
+.notch::before,
+.notch::after {
+  content: "";
+  position: absolute;
+  top: var(--frame-top);
+  width: calc(var(--notch-shoulder) + 1px);   /* 1px tucked under the notch: no seam */
+  height: var(--notch-shoulder);
+}
+/* each shoulder is a small square of the gradient with a quarter circle cut from its lower outer
+   corner; its gradient is shifted by its own distance from the left edge of the screen */
+.notch::before {
+  right: calc(100% - 1px);
+  background: var(--frame-fill) calc(var(--notch-shoulder) - var(--notch-x)) 0 / var(--page-w) 100% no-repeat;
+  -webkit-mask: radial-gradient(circle at 0 100%, transparent calc(var(--notch-shoulder) - 0.5px), #000 var(--notch-shoulder));
+          mask: radial-gradient(circle at 0 100%, transparent calc(var(--notch-shoulder) - 0.5px), #000 var(--notch-shoulder));
+}
+.notch::after {
+  left: calc(100% - 1px);
+  background: var(--frame-fill) calc(1px - var(--notch-x) - var(--notch-w)) 0 / var(--page-w) 100% no-repeat;
+  -webkit-mask: radial-gradient(circle at 100% 100%, transparent calc(var(--notch-shoulder) - 0.5px), #000 var(--notch-shoulder));
+          mask: radial-gradient(circle at 100% 100%, transparent calc(var(--notch-shoulder) - 0.5px), #000 var(--notch-shoulder));
+}
+
+.brand { display: block; height: auto; overflow: visible; }
+.brand-left   { width: 154px; }
+/* the notch logo: 426.48px wide as in Aqari_Revised, unless that would leave less than 7.5px above
+   and below (8.24 = the logo's width / height) */
+.brand-center { width: min(426.48px, (var(--notch-body-h) - 15px) * 8.24); }
+.brand-right  { width: 249px; }
+
