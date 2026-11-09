@@ -772,6 +772,18 @@ void main() {
         minScale: 0.03,
         entrance: "bang",
         exitDuration: null,
+        // entrance "page": the slides' own CSS motion ([data-anim] in css/slides.css), row by row from
+        // the back (top of the screen): each row moves pageShift design px while it fades and un-blurs,
+        // rows pageGap s apart coming in (after pageDelay), pageGapOut s apart leaving; viewHeight is
+        // the canvas's height in design px (to turn pageShift into world units)
+        pageShift: 94,
+        pageMove: 0.9,
+        pageFade: 0.55,
+        pageDelay: 0.26,
+        pageGap: 0.09,
+        pageGapOut: 0.04,
+        pageRows: 5,
+        viewHeight: 1034,
         // cloth and air
         // air: how hard a moving cursor shakes nearby cloth; airBlow: how hard it blows while resting
         // over the ring; airRadius: its reach, as a share of the canvas's short side
@@ -802,7 +814,9 @@ void main() {
       this.dragging = null;
       this.ray = new THREE5.Raycaster();
       this.ndc = new THREE5.Vector2();
-      this.tmp = { p: new THREE5.Vector3(), q: new THREE5.Quaternion(), q2: new THREE5.Quaternion(), v: new THREE5.Vector3(), n: new THREE5.Vector3() };
+      this.tmp = { p: new THREE5.Vector3(), q: new THREE5.Quaternion(), q2: new THREE5.Quaternion(), v: new THREE5.Vector3(), n: new THREE5.Vector3(), up: new THREE5.Vector3() };
+      this.pageT = Infinity;
+      this.pageEnd = 0;
       this.cursor = { x: -1e4, y: -1e4, t: 0, vx: 0, vy: 0, speed: 0 };
     }
     /** Places a Stage's camera the way the original page framed the ring. */
@@ -852,7 +866,14 @@ void main() {
           h: (r() - 0.5) * 2,
           q0: new THREE5.Quaternion().setFromEuler(new THREE5.Euler(r() * 6.283, r() * 6.283, r() * 6.283)),
           axis: new THREE5.Vector3(r() - 0.5, r() - 0.5, r() - 0.5).normalize(),
-          spin: Math.PI * (1.5 + r() * 2)
+          spin: Math.PI * (1.5 + r() * 2),
+          // the "page" entrance: opacity and shift now (shift in pageShifts, + = below), and the
+          // transition it is on (from, to, its delay)
+          fo: 0,
+          fs: 1,
+          from: { o: 0, s: 1 },
+          to: { o: 0, s: 1 },
+          d: 0
         });
         textures[k].then((tex) => material.userData.setTexture(tex)).catch((e) => console.warn("[scrollstage] ClothRing: failed to load", o.images[k], e));
       }
@@ -915,12 +936,46 @@ void main() {
         const n = this.options.count, front = mod(Math.round(-this.theta / this.step), n);
         for (let i = 0; i < n; i++) this.cards[i].order = n > 1 ? mod(i - front, n) / (n - 1) : 0;
       }
+      if (this.options.entrance === "page") this.pagePhase(true, 0);
       this.target = 1;
       return this;
     }
-    hide() {
+    /** `side` (entrance "page"): -1 leaves upwards (the deck moved on), +1 downwards (it went back). */
+    hide(side = -1) {
+      if (this.options.entrance === "page") this.pagePhase(false, side);
       this.target = 0;
       return this;
+    }
+    /**
+     * Entrance "page": where the hidden cards wait, -1 above or +1 below, as a page's content does
+     * once the deck has passed it (or gone back before it). It moves them only while out of sight.
+     */
+    restSide(side) {
+      if (this.target) return this;
+      for (const c of this.cards) {
+        if (c.fo > 1e-3) continue;
+        c.fs = side;
+        c.from = { o: 0, s: side };
+        c.to = { o: 0, s: side };
+      }
+      return this;
+    }
+    /** Starts every card on its way in or out from where it is now, like a CSS transition. */
+    pagePhase(on, side) {
+      const o = this.options, rows = Math.max(1, o.pageRows);
+      const still = this.stage?.reducedMotion;
+      this.pageT = 0;
+      this.pageEnd = 0;
+      this.cards.forEach((c, i) => {
+        const a0 = i * this.step + this.theta;
+        // the back of the ring is the top of the screen: that row first, as the pages go top item first
+        const row = Math.round((Math.cos(a0) + 1) / 2 * (rows - 1));
+        c.from = { o: c.fo, s: c.fs };
+        c.to = on ? { o: 1, s: 0 } : { o: 0, s: side };
+        c.d = still ? on ? 0.15 : 0 : on ? o.pageDelay + row * o.pageGap : row * o.pageGapOut;
+        this.pageEnd = Math.max(this.pageEnd, c.d);
+      });
+      this.pageEnd += still ? 0.3 : Math.max(o.pageMove, o.pageFade);
     }
     /** Turns the ring so card `i` faces the camera (the shortest way round). */
     goTo(i) {
@@ -951,10 +1006,18 @@ void main() {
       if (dt <= 0) return;
       const o = this.options, n = o.count, R = this.radius, [, H] = o.cardSize;
       const motion = stage.reducedMotion ? 0 : 1;
-      const { p: vP, q: vQ, q2, v, n: vN } = this.tmp;
-      const dur = this.target < this.reveal ? o.exitDuration ?? o.duration : o.duration;
-      const rate = dt / Math.max(0.01, motion ? dur : 0.3);
-      this.reveal = this.target > this.reveal ? Math.min(this.target, this.reveal + rate) : Math.max(this.target, this.reveal - rate);
+      const { p: vP, q: vQ, q2, v, n: vN, up: vUp } = this.tmp;
+      const pageIn = o.entrance === "page";
+      if (pageIn) {
+        // "page" runs on its own clock; reveal only says whether it is still on its way
+        this.pageT += dt;
+        const done = !(this.pageT < this.pageEnd);
+        this.reveal = this.target ? done ? 1 : 0.5 : done ? 0 : 0.5;
+      } else {
+        const dur = this.target < this.reveal ? o.exitDuration ?? o.duration : o.duration;
+        const rate = dt / Math.max(0.01, motion ? dur : 0.3);
+        this.reveal = this.target > this.reveal ? Math.min(this.target, this.reveal + rate) : Math.max(this.target, this.reveal - rate);
+      }
       this.group.visible = this.reveal > 1e-3;
       if (!this.group.visible) return;
       const before = this.theta;
@@ -998,14 +1061,29 @@ void main() {
       const moving = Math.min(1, Math.abs(vel) * 4);
       const fade = 1 - Math.exp(-dt * 12);
       const st = o.stagger;
-      const blurIn = o.entrance === "blur";
+      const blurIn = o.entrance === "blur" || pageIn;
+      // "page" shifts along the screen's up, by design px turned into world units at each card
+      const cam = stage.camera;
+      vUp.set(0, 1, 0).applyQuaternion(cam.quaternion);
+      const pxAt = 2 * Math.tan(THREE5.MathUtils.degToRad(cam.fov) / 2) / o.viewHeight;
       for (let i = 0; i < n; i++) {
         const c = this.cards[i];
         const u = c.u;
         c.hover += ((i === this.hoverIndex ? 1 : 0) - c.hover) * fade;
         springStep(c.rise, i === this.hoverIndex && this.reveal >= 1 ? 1 : 0, 70, critical(70), dt);
-        const tLin = clamp01(this.reveal * (1 + st) - (blurIn ? c.order ?? 0 : c.delay) * st);
-        const tEase = motion ? 1 - (1 - tLin) ** 3 : tLin;
+        let tLin, tEase;
+        if (pageIn) {
+          // the pages' transition: --s-ease on both, the move over pageMove s, the fade over pageFade s
+          const k = this.pageT - c.d;
+          const pm = motion ? CSS_EASE(clamp01(k / o.pageMove)) : 1;
+          const pf = motion ? CSS_EASE(clamp01(k / o.pageFade)) : clamp01(k / 0.3);
+          c.fs = c.from.s + (c.to.s - c.from.s) * pm;
+          c.fo = c.from.o + (c.to.o - c.from.o) * pf;
+          tLin = tEase = c.fo;
+        } else {
+          tLin = clamp01(this.reveal * (1 + st) - (blurIn ? c.order ?? 0 : c.delay) * st);
+          tEase = motion ? 1 - (1 - tLin) ** 3 : tLin;
+        }
         c.mesh.visible = tEase > 2e-3;
         if (!c.mesh.visible) {
           c.prevT = tEase;
@@ -1027,12 +1105,13 @@ void main() {
         const ang = angR + (1 - t) * o.swirl;
         const rad = radR * t;
         vP.set(rad * Math.sin(ang), ry * t + Math.sin(Math.PI * t) * c.h * o.scatter, rad * Math.cos(ang));
+        if (pageIn && c.fs && motion) vP.addScaledVector(vUp, -c.fs * o.pageShift * pxAt * cam.position.distanceTo(vP));
         vQ.setFromAxisAngle(Y_AXIS, yaw);
         if (t < 1) {
           q2.copy(c.q0).slerp(vQ, 1 - (1 - t) * (1 - t));
           vQ.copy(q2).multiply(SPIN_Q.setFromAxisAngle(c.axis, (1 - t) * c.spin));
         }
-        const s = blurIn ? pop * (0.94 + 0.06 * tEase) : o.minScale + (pop - o.minScale) * Math.pow(t, 0.6);
+        const s = pageIn ? pop : blurIn ? pop * (0.94 + 0.06 * tEase) : o.minScale + (pop - o.minScale) * Math.pow(t, 0.6);
         c.mesh.position.copy(vP);
         c.mesh.quaternion.copy(vQ);
         c.mesh.scale.setScalar(s);
@@ -1081,7 +1160,7 @@ void main() {
         const nz = Math.cos(yaw);
         u.uShade.value = (0.86 + 0.14 * smoothstep(-1, 1, ca)) * (0.8 + 0.2 * Math.abs(nz));
         u.uHover.value = c.hover;
-        u.uOpacity.value = blurIn ? clamp01(tLin * 2.5) : clamp01(t * 4);
+        u.uOpacity.value = pageIn ? c.fo : blurIn ? clamp01(tLin * 2.5) : clamp01(t * 4);
         u.uBlur.value = blurIn && motion ? 1 - tEase : 0;
         u.uWave.value = c.wave * o.cloth;
         u.uCorner.value = c.corner * o.cloth;
@@ -1107,6 +1186,23 @@ void main() {
     }
   };
   var Y_AXIS = new THREE5.Vector3(0, 1, 0);
+  // the slides' --s-ease, cubic-bezier(0.22, 1, 0.36, 1), as a function of 0..1
+  var CSS_EASE = cubicBezier(0.22, 1, 0.36, 1);
+  function cubicBezier(x1, y1, x2, y2) {
+    const at = (t, a, b) => 3 * a * t * (1 - t) * (1 - t) + 3 * b * t * t * (1 - t) + t * t * t;
+    return (x) => {
+      if (x <= 0) return 0;
+      if (x >= 1) return 1;
+      let t = x;
+      for (let i = 0; i < 8; i++) {
+        const err = at(t, x1, x2) - x;
+        if (Math.abs(err) < 1e-5) break;
+        const slope = 3 * x1 * (1 - t) * (1 - t) + 6 * (x2 - x1) * t * (1 - t) + 3 * (1 - x2) * t * t;
+        t = Math.min(1, Math.max(0, t - err / (slope || 1e-6)));
+      }
+      return at(t, y1, y2);
+    };
+  }
   var SPIN_Q = new THREE5.Quaternion();
   function textureFor(item, renderer) {
     if (typeof item === "string") return loadTexture(item, renderer);
