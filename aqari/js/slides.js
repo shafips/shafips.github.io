@@ -57,11 +57,12 @@ if (root) {
     return firstStop(s) + k;
   };
 
-  /* ---------- count-up numbers ---------- */
+  /* ---------- count-up numbers: once per page load, the first time their page shows;
+     after that they keep their final value (no recount on steps or later visits) ---------- */
   const fmt = new Intl.NumberFormat('en-US');
   function countUp(el, delay) {
-    cancelAnimationFrame(el._raf);
-    clearTimeout(el._start);
+    if (el._counted) return;
+    el._counted = true;
     const to = Number(el.dataset.count);
     if (reduceMotion.matches) { el.textContent = fmt.format(to); return; }
     el.textContent = '0';
@@ -79,6 +80,8 @@ if (root) {
   }
 
   function setStep(slide, k) {
+    const prevStep = parseInt(slide.dataset.step, 10);
+    if (prevStep !== k) slide.dataset.dir = k < prevStep ? 'back' : 'forward';   // read by the CSS (page 7's glare)
     slide.dataset.step = String(k);
     slide.style.setProperty('--step', k);
     slide.querySelectorAll('[data-step-item]').forEach((el) => {
@@ -101,10 +104,6 @@ if (root) {
       el.classList.add(cls);
       clearTimeout(el._moveEnd);
       el._moveEnd = setTimeout(() => el.classList.remove(cls), 1100);
-      // arriving in the middle on a step of the page already showing: count again
-      if (slot === 1 && slide.classList.contains('is-active')) {
-        el.querySelectorAll('[data-count]').forEach((n) => countUp(n, 150));
-      }
     });
   }
 
