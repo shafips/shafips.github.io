@@ -1,22 +1,325 @@
-<!DOCTYPE html>
-<html>
-
+<!doctype html>
+<html lang="en">
 <head>
-    <title>Shafi's portfolio</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/avenir/font.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aqari Platform</title>
+<meta name="theme-color" content="#dbedf3">
+<meta name="description" content="Aqari Platform - an interactive map and AI-powered real estate assistant from the Government of Sharjah.">
+
+<!-- the background image is needed straight away (the fonts are loaded by css/style.css; a font
+     preload would need `crossorigin`, which browsers refuse when the page is opened from disk) -->
+<link rel="preload" href="images/mainbg2-2560.webp" as="image" type="image/webp">
+<!-- the page is a fixed 1920 x 1080 (Full HD): zoom it so it fits any screen
+     (set before the first paint; see the top of css/style.css) -->
+<script>
+  (function () {
+    var root = document.documentElement;
+    function fit() { root.style.setProperty('--zoom', String(Math.min(innerWidth / 1920, innerHeight / 1080))); }
+    fit();
+    addEventListener('resize', fit);
+  })();
+</script>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/slides.css">
+
+<!-- Plain scripts (no modules, no build step), so the page also works opened straight from disk,
+     with no server. In order:
+     slides.js: the pages and their steps (one scroll = one step), first so paging works straight away.
+     lib/three.min.js, lib/scrollstage.js: three.js (window.THREE) and the scrollstage components
+     (window.Scrollstage). whenactive.js: draws a scene only while its page shows. bg-image.js: the
+     background image as a data URL for WebGL, ring-images.js: the page 2 photos, the same way. Then the scenes: dotwave.js (the dot waves),
+     gallery.js (the image ring, page 2), main.js (the animated background). -->
+<script defer src="js/slides.js"></script>
+<script defer src="js/lib/three.min.js"></script>
+<script defer src="js/lib/scrollstage.js"></script>
+<script defer src="js/whenactive.js"></script>
+<script defer src="js/bg-image.js"></script>
+<script defer src="js/ring-images.js"></script>
+<script defer src="js/dotwave.js"></script>
+<script defer src="js/gallery.js"></script>
+<script defer src="js/main.js"></script>
 </head>
+<body id="top">
+  <!-- the frame (light blue to white), and the background image panel inside it -->
+  <div class="page-frame" aria-hidden="true"></div>
+  <div class="page-bg" aria-hidden="true">
+    <!-- the animated background (moving image + two glowing orbs); fades in over the plain image once ready -->
+    <canvas id="bgCosmic"></canvas>
+  </div>
 
-<body>
+  <header class="site-header">
+    <!-- left: "Sharjah at Gitex" (the lettering of Aqari_Revised, as outlines) -->
+    <img class="brand brand-left" src="images/logo-sharjah-gitex.svg" width="154" height="50" alt="Sharjah at Gitex - الشارقة في جيتكس">
 
-    <section class="top-section">
-        <div>
-            <h1>Hello</h1>
-            <h4>shafips.github.io</h4>
-            <p>This site is under construction</p>
-        </div>
+    <!-- centre: "AQARI PLATFORM / منصة عقاري" (the lettering of Aqari_Revised, as outlines), in the notch at the top -->
+    <div class="notch">
+      <img class="brand brand-center" src="images/logo-aqari-platform.svg" width="426" height="52" alt="Aqari Platform - منصة عقاري">
+    </div>
+
+    <!-- right: Government of Sharjah (images/logo.svg) -->
+    <img class="brand brand-right" src="images/logo.svg" alt="Government of Sharjah" width="243" height="61">
+
+    <!-- under "Sharjah at Gitex": the small Aqari logo, on every page but the first (where it's in the middle) -->
+    <img class="brand-aqari" src="images/logofooter.png" width="1429" height="1023" alt="Aqari">
+  </header>
+
+  <!-- the pages: css/slides.css + js/slides.js. One scroll gesture, swipe or key = one step.
+       Inside each page, every [data-anim] element animates in turn (top to bottom);
+       pages with data-steps move through their steps before the next page. -->
+  <main id="main" class="slides">
+
+    <!-- 1. opening: the logo on a glass card, an orbit line sweeping past it.
+         The orbit line (pages 1 and 3) is the ellipse seen in Aqari_Revised (traced from the PDF): centre
+         1528.7, 694.8 in panel px, radii 646.5 x 437.5, a 3px white line; it draws in from the bottom (where it enters the page, lower left), up round the left and over the top. -->
+    <section class="slide slide--intro" id="page-1" aria-label="Aqari Platform">
+      <svg class="intro-orbit" viewBox="0 0 1874 1034" aria-hidden="true">
+        <path class="intro-orbit-line" d="M1139.23 1044A646.5 437.5 0 0 1 1918.17 345.6A646.5 437.5 0 0 1 1139.23 1044" pathLength="1"/>
+      </svg>
+      <div class="intro-card" data-anim>
+        <span class="intro-shine" aria-hidden="true"></span>
+        <img class="intro-logo" src="images/logofooter.png" width="1429" height="1023" alt="Aqari">
+      </div>
     </section>
 
-</body>
+    <!-- 2. the cloth ring: photo prints on cloth standing edge-on around a ring (three.js, js/gallery.js,
+         the ClothRing component in vendor/scrollstage). Drag to turn, click a print to bring it forward. -->
+    <section class="slide slide--gallery" id="page-2" aria-label="Aqari at a glance">
+      <canvas class="gallery-canvas" aria-label="Aqari images: drag to turn" role="img"></canvas>
+    </section>
 
+    <!-- 3. the platform: text on the left; on the right a tall glass frame holding the app (the
+         dashboard, in a hand), and an orbit line circling behind -->
+    <section class="slide slide--platform" id="page-3" aria-labelledby="p3-title">
+      <svg class="intro-orbit" viewBox="0 0 1874 1034" aria-hidden="true">
+        <path class="intro-orbit-line" d="M1139.23 1044A646.5 437.5 0 0 1 1918.17 345.6A646.5 437.5 0 0 1 1139.23 1044" pathLength="1"/>
+      </svg>
+      <div class="platform-text">
+        <h1 class="platform-title" id="p3-title">
+          <span lang="ar" dir="rtl" data-anim>خارطـــــة عقاري والوسيط العقاري المســـــاعد</span>
+          <span data-anim>Aqari Map and Real Estate Broker Agent</span>
+        </h1>
+        <p class="platform-lead" lang="ar" dir="rtl" data-anim>"عقاري".. خارطة تفاعلية ووسيط عقاري ذكي، يجمعان بيانات السوق والخدمات العقارية في تجربة رقمية واحدة، تمنحك رؤية أوضح وقرارات أكثر ثقة</p>
+        <p class="platform-lead" data-anim>Aqari… an interactive map and <span class="nowrap">AI-powered</span> real estate assistant that brings together property market data and services in one digital experience, offering clearer insights and more confident decisions</p>
+      </div>
+      <div class="platform-visual" data-anim style="--i: 1">
+        <!-- the white keyhole icon with rays, left of the frame (Aqari_Revised page 3) -->
+        <img class="platform-key" src="images/keyhole.svg" width="96" height="96" alt="">
+        <div class="platform-frame">
+          <!-- the phone in a hand, with the app's page scrolling on its screen: the page sits
+               behind the photo (its screen cut out), warped to the screen's perspective -->
+          <div class="platform-phone" role="img"
+               aria-label="The Aqari app on a phone held in a hand, scrolling through the personal dashboard: properties, contracts, services and the Digital Sharjah app">
+            <div class="phone-stage">
+              <div class="phone-screen">
+                <div class="phone-view">
+                  <div class="phone-page"><img class="phone-page-img" src="images/phone-app-screen.webp" width="984" height="7650" alt=""></div>
+                  <div class="phone-bar"><img src="images/phone-app-screen.webp" width="984" height="7650" alt=""></div>
+                </div>
+              </div>
+              <img class="phone-hand" src="images/phone-hand.webp" width="697" height="871" alt="">
+            </div>
+          </div>
+          <!-- the glass pill with the orange app icon, top right of the frame -->
+          <img class="platform-pill" src="images/app-pill.svg" width="110" height="63" alt="">
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. objectives, four steps: the text and the big outlined number change with each step,
+         and the deck of pictures on the right moves its next card to the front -->
+    <section class="slide slide--split slide--objectives" id="page-4" data-section="objectives" data-steps="4" aria-labelledby="p4-title">
+      <!-- the digits are the outlines of 29LT Kaff Regular taken from Aqari_Revised (pages 4-7), at
+           525.22px; the matrix's last two numbers are each digit's origin, less the panel's 23px offset -->
+      <svg class="big-num" viewBox="0 0 600 1034" aria-hidden="true">
+        <g data-step-item="0"><path transform="matrix(525.22 0 0 -525.22 116.94 1058.4)" d="M.18499756 0V.56700137H.016998291V.6289978C.07299805 .6310018 .11516317 .63816836 .14349365 .65049746 .1718343 .66283676 .19533794 .6876729 .21400452 .7250061H.27600099V0H.18499756Z"/></g>
+        <g data-step-item="1"><path transform="matrix(525.22 0 0 -525.22 106.77 1046.04)" d="M.53700259 .54800418C.53700259 .5073344 .52733358 .4668325 .5079956 .4264984 .48866783 .38616435 .46016947 .3461609 .4225006 .30648805 .38483177 .26682536 .3458303 .23032634 .30549623 .19699097 .26516215 .16366577 .21632894 .12633769 .15899658 .085006717H.55700686V0H.035003663V.08200073C.10366821 .13267009 .16116333 .1771698 .20748902 .21549988 .25382487 .25382997 .29549156 .29216004 .332489 .3304901 .36949668 .36883036 .39683024 .40483094 .41448976 .43849183 .43215943 .47216288 .44099427 .5046641 .44099427 .5359955 .44099427 .57400009 .42899577 .6045024 .40499879 .62750247 .3810018 .6505025 .3476664 .66200259 .30499269 .66200259 .26166789 .66200259 .22500102 .6488342 .19499207 .62249758 .16499329 .5961609 .14966329 .5549927 .14900208 .49899293L.054992677 .5070038C.05633545 .5763295 .07983907 .63216146 .12550354 .6744995 .17116802 .7168376 .23166912 .7380066 .30700685 .7380066 .3756714 .7380066 .4311676 .7213389 .47349549 .68800356 .51583358 .65466818 .53700259 .6080017 .53700259 .54800418Z"/></g>
+        <g data-step-item="2"><path transform="matrix(525.22 0 0 -525.22 89.89 1046.04)" d="M.44999696 .20300293C.44999696 .29500328 .3803304 .34100343 .24099732 .34100343H.22599793V.42399598H.23800659C.3666687 .42399598 .43099977 .46399943 .43099977 .54400637 .43099977 .58133956 .41766358 .6103363 .3909912 .6309967 .364329 .6516673 .33066307 .66200259 .2899933 .66200259 .20200093 .66200259 .14933777 .6150004 .13200379 .5209961L.041000368 .54299929C.051671346 .60233566 .07866923 .6496684 .12199402 .68499758 .16532898 .7203369 .22200012 .7380066 .29200746 .7380066 .360672 .7380066 .41700236 .72300216 .46099855 .69299319 .5049947 .6629944 .5269928 .61666366 .5269928 .55400088 .5269928 .51666769 .51665756 .48316447 .49598695 .4534912 .47532655 .42382813 .44632975 .40133158 .40899659 .3860016 .5009969 .35733543 .5469971 .29666648 .5469971 .20399475 .5469971 .13466899 .52183029 .08117167 .47149659 .043502809 .42116294 .005833944 .35899864-.013000488 .28500367-.013000488 .20966594-.013000488 .15082805 .005996704 .10848999 .04399109 .06616211 .08199564 .03999837 .1309967 .02999878 .19099427L.1210022 .21200562C.13899739 .1126709 .19399517 .06300354 .28599549 .06300354 .33533225 .06300354 .375 .07533264 .40499879 .099990848 .43499757 .12465922 .44999696 .15899658 .44999696 .20300293Z"/></g>
+        <g data-step-item="3"><path transform="matrix(525.22 0 0 -525.22 88.91 1046.04)" d="M.6069946 .17900086H.47399903V0H.38200379V.17900086H.022003174V.2649994L.3809967 .7250061H.47399903V.2649994H.6069946V.17900086M.1230011 .2649994H.38200379V.6000061L.1230011 .2649994Z"/></g>
+      </svg>
+      <div class="split-text">
+        <h2 class="sec-title sec-title--objectives" id="p4-title" data-anim>
+          <img class="sec-title-img" src="images/title-objectives.svg" width="570" height="119" alt="Objectives - الأهداف">
+        </h2>
+        <div class="step-copy" data-anim>
+          <div class="step-text" data-step-item="0">
+            <p lang="ar" dir="rtl">تعزيز شفافية السوق العقاري من خلال بيانات حكومية موثوقة</p>
+            <p>To enhance real estate market transparency through trusted government data</p>
+          </div>
+          <div class="step-text" data-step-item="1">
+            <p lang="ar" dir="rtl">تمكين المستثمرين والمتعاملين من اتخاذ قرارات عقارية مدروسة</p>
+            <p>To empower investors and users to make informed property decisions</p>
+          </div>
+          <div class="step-text" data-step-item="2">
+            <p lang="ar" dir="rtl">تبسيط الوصول إلى المعلومات والخدمات العقارية باستخدام الذكاء الاصطناعي</p>
+            <p>To simplify access to property information and services using AI</p>
+          </div>
+          <div class="step-text" data-step-item="3">
+            <p lang="ar" dir="rtl">رفع كفاءة الخدمات العقارية وتعزيز التحول الرقمي في إمارة الشارقة</p>
+            <p>To improve real estate service efficiency and advance digital transformation in Sharjah</p>
+          </div>
+        </div>
+      </div>
+      <!-- four photos in a turning fan, one per step (as on page 5): the step's photo in the middle,
+           the next to its right, the last to its left, one waiting behind -->
+      <div class="photo-fan photo-fan--4" data-anim aria-hidden="true">
+        <figure class="fan-photo" data-ring="0"><img src="images/objective-man.webp" width="1000" height="1005" alt=""></figure>
+        <figure class="fan-photo" data-ring="1"><img src="images/objective-decisions.webp" width="1200" height="1410" alt=""></figure>
+        <figure class="fan-photo" data-ring="2"><img src="images/objective-ai.webp" width="1200" height="1410" alt=""></figure>
+        <figure class="fan-photo" data-ring="3"><img src="images/objective-efficiency.webp" width="1200" height="1410" alt=""></figure>
+      </div>
+    </section>
+
+    <!-- 5. smart features, five steps: a fan of five photos that turns with each step (the number) -->
+    <section class="slide slide--split slide--features" id="page-5" data-section="features" data-steps="5" aria-labelledby="p5-title">
+      <!-- the digits: as on page 4 (Aqari_Revised pages 8-12) -->
+      <svg class="big-num" viewBox="0 0 600 1034" aria-hidden="true">
+        <g data-step-item="0"><path transform="matrix(525.22 0 0 -525.22 116.94 1046.04)" d="M.18499756 0V.56700137H.016998291V.6289978C.07299805 .6310018 .11516317 .63816836 .14349365 .65049746 .1718343 .66283676 .19533794 .6876729 .21400452 .7250061H.27600099V0H.18499756Z"/></g>
+        <g data-step-item="1"><path transform="matrix(525.22 0 0 -525.22 106.77 1046.04)" d="M.53700259 .54800418C.53700259 .5073344 .52733358 .4668325 .5079956 .4264984 .48866783 .38616435 .46016947 .3461609 .4225006 .30648805 .38483177 .26682536 .3458303 .23032634 .30549623 .19699097 .26516215 .16366577 .21632894 .12633769 .15899658 .085006717H.55700686V0H.035003663V.08200073C.10366821 .13267009 .16116333 .1771698 .20748902 .21549988 .25382487 .25382997 .29549156 .29216004 .332489 .3304901 .36949668 .36883036 .39683024 .40483094 .41448976 .43849183 .43215943 .47216288 .44099427 .5046641 .44099427 .5359955 .44099427 .57400009 .42899577 .6045024 .40499879 .62750247 .3810018 .6505025 .3476664 .66200259 .30499269 .66200259 .26166789 .66200259 .22500102 .6488342 .19499207 .62249758 .16499329 .5961609 .14966329 .5549927 .14900208 .49899293L.054992677 .5070038C.05633545 .5763295 .07983907 .63216146 .12550354 .6744995 .17116802 .7168376 .23166912 .7380066 .30700685 .7380066 .3756714 .7380066 .4311676 .7213389 .47349549 .68800356 .51583358 .65466818 .53700259 .6080017 .53700259 .54800418Z"/></g>
+        <g data-step-item="2"><path transform="matrix(525.22 0 0 -525.22 108.34 1046.04)" d="M.44999696 .20300293C.44999696 .29500328 .3803304 .34100343 .24099732 .34100343H.22599793V.42399598H.23800659C.3666687 .42399598 .43099977 .46399943 .43099977 .54400637 .43099977 .58133956 .41766358 .6103363 .3909912 .6309967 .364329 .6516673 .33066307 .66200259 .2899933 .66200259 .20200093 .66200259 .14933777 .6150004 .13200379 .5209961L.041000368 .54299929C.051671346 .60233566 .07866923 .6496684 .12199402 .68499758 .16532898 .7203369 .22200012 .7380066 .29200746 .7380066 .360672 .7380066 .41700236 .72300216 .46099855 .69299319 .5049947 .6629944 .5269928 .61666366 .5269928 .55400088 .5269928 .51666769 .51665756 .48316447 .49598695 .4534912 .47532655 .42382813 .44632975 .40133158 .40899659 .3860016 .5009969 .35733543 .5469971 .29666648 .5469971 .20399475 .5469971 .13466899 .52183029 .08117167 .47149659 .043502809 .42116294 .005833944 .35899864-.013000488 .28500367-.013000488 .20966594-.013000488 .15082805 .005996704 .10848999 .04399109 .06616211 .08199564 .03999837 .1309967 .02999878 .19099427L.1210022 .21200562C.13899739 .1126709 .19399517 .06300354 .28599549 .06300354 .33533225 .06300354 .375 .07533264 .40499879 .099990848 .43499757 .12465922 .44999696 .15899658 .44999696 .20300293Z"/></g>
+        <g data-step-item="3"><path transform="matrix(525.22 0 0 -525.22 98.15 1046.04)" d="M.6069946 .17900086H.47399903V0H.38200379V.17900086H.022003174V.2649994L.3809967 .7250061H.47399903V.2649994H.6069946V.17900086M.1230011 .2649994H.38200379V.6000061L.1230011 .2649994Z"/></g>
+        <g data-step-item="4"><path transform="matrix(525.22 0 0 -525.22 107.08 1046.04)" d="M.46899415 .23800659C.46899415 .29400636 .45282493 .33666993 .42048646 .3659973 .38815818 .39533488 .34999595 .41000367 .30599977 .41000367 .2713318 .41000367 .24166362 .4018351 .21699524 .38549806 .19232686 .36916099 .17532857 .35066224 .16600037 .33000184L.07499695 .3350067 .12199402 .7250061H.5379944V.6399994H.19599915L.17100525 .43400575C.20833843 .4706675 .2603353 .4889984 .32699586 .4889984 .3936666 .4889984 .45000205 .4664968 .4960022 .42149354 .5420024 .37650047 .56500247 .31566874 .56500247 .23899842 .56500247 .15966289 .53999838 .097829189 .48999024 .053497316 .43999229 .009165446 .3789978-.013000488 .30700685-.013000488 .2303365-.013000488 .17083232 .006830851 .12849427 .04649353 .08616638 .08616638 .060333253 .13700359 .050994874 .19900513L.14300537 .21000672C.15833538 .1120046 .21300252 .06300354 .30700685 .06300354 .3523356 .06300354 .39066569 .07866923 .42199708 .11000061 .45332847 .14133199 .46899415 .18400066 .46899415 .23800659Z"/></g>
+      </svg>
+      <div class="split-text">
+        <h2 class="sec-title sec-title--features" id="p5-title" data-anim>
+          <img class="sec-title-img" src="images/title-features.svg" width="571" height="95" alt="Smart Features - المميزات الذكية">
+        </h2>
+        <div class="step-copy" data-anim>
+          <div class="step-text" data-step-item="0">
+            <p lang="ar" dir="rtl">خارطة تفاعلية لمؤشرات الإيجارات والتداولات والتحليلات العقارية</p>
+            <p>Interactive map featuring rental indicators, property transactions, and market analytics</p>
+          </div>
+          <div class="step-text" data-step-item="1">
+            <p lang="ar" dir="rtl">خارطة تفاعلية لمؤشرات الإيجارات والتداولات والتحليلات العقارية</p>
+            <p>Trusted government property data supporting a clearer understanding of market trends</p>
+          </div>
+          <div class="step-text" data-step-item="2">
+            <p lang="ar" dir="rtl">وسيط عقاري بالذكاء الاصطناعي للإجابة الفورية وتقديم التوصيات</p>
+            <p><span class="nowrap">AI-powered</span> real estate assistant providing instant answers and recommendations</p>
+          </div>
+          <div class="step-text" data-step-item="3">
+            <p lang="ar" dir="rtl">إمكانية تقديم طلبات تجديد عقود الإيجار بمساعدة الوسيط الذكي</p>
+            <p><span class="nowrap">AI-assisted</span> submission of lease renewal requests</p>
+          </div>
+          <div class="step-text" data-step-item="4">
+            <p lang="ar" dir="rtl">تكامل المعلومات والخدمات ضمن منصة "عقاري" الموحدة</p>
+            <p>Integrated property information and services within the unified Aqari Platform</p>
+          </div>
+        </div>
+      </div>
+      <div class="photo-fan" data-anim aria-hidden="true">
+        <!-- five photos in a fan, one per step: the step's photo in the middle, the others two each
+             side. data-ring (js/slides.js): each step turns the fan one place -->
+        <figure class="fan-photo" data-ring="0"><img src="images/feature-map.webp" width="1050" height="1356" alt=""></figure>
+        <figure class="fan-photo" data-ring="1"><img src="images/feature-data.webp" width="1050" height="1356" alt=""></figure>
+        <figure class="fan-photo" data-ring="2"><img src="images/feature-assistant.webp" width="1050" height="1356" alt=""></figure>
+        <figure class="fan-photo" data-ring="3"><img src="images/feature-lease.webp" width="1050" height="1356" alt=""></figure>
+        <figure class="fan-photo" data-ring="4"><img src="images/feature-services.webp" width="1050" height="1356" alt=""></figure>
+      </div>
+    </section>
+
+    <!-- 6. visitor journey, four steps along a timeline (right to left) over a dot wave (three.js,
+         js/dotwave.js). A step's pin waits on the left until its turn, then moves to its place. -->
+    <section class="slide slide--journey" id="page-6" data-section="journey" data-steps="4" aria-labelledby="p6-title">
+      <canvas class="slide-wave slide-wave--band" aria-hidden="true"></canvas>
+      <h2 class="sec-title sec-title--center" id="p6-title" data-anim>
+        <img class="sec-title-img" src="images/title-journey.svg" width="756" height="141" alt="Visitor Journey - رحلة الزائر">
+      </h2>
+      <div class="journey" data-anim>
+        <span class="pin" data-step-item="0" style="--at: 1503px; --wait: 1503px" aria-hidden="true"></span>
+        <span class="pin" data-step-item="1" style="--at: 1230px; --wait: 787px" aria-hidden="true"></span>
+        <span class="pin" data-step-item="2" style="--at: 955px; --wait: 514px" aria-hidden="true"></span>
+        <span class="pin" data-step-item="3" style="--at: 681px; --wait: 241px" aria-hidden="true"></span>
+
+        <article class="jstep" data-step-item="0" style="--at: 1503px">
+          <p class="jstep-badge"><span>STEP 01</span> <span lang="ar" dir="rtl">الخطوة</span></p>
+          <h3 class="jstep-title"><span lang="ar" dir="rtl">استكشاف السوق العقاري</span><span>Explore the Property Market</span></h3>
+          <p class="jstep-ar" lang="ar" dir="rtl">خارطة تفاعلية تعرض مؤشرات الإيجارات والتداولات والتحليلات العقارية، بالاعتماد على بيانات حكومية موثوقة</p>
+          <p class="jstep-en">An interactive map displaying rental indicators, property transactions, and market analytics based on trusted government data</p>
+        </article>
+        <article class="jstep" data-step-item="1" style="--at: 1230px">
+          <p class="jstep-badge"><span>STEP 02</span> <span lang="ar" dir="rtl">الخطوة</span></p>
+          <h3 class="jstep-title"><span lang="ar" dir="rtl">المساعدة الذكية</span><span><span class="nowrap">AI-Powered</span> Assistance</span></h3>
+          <p class="jstep-ar" lang="ar" dir="rtl">وسيط عقاري يعمل بالذكاء الاصطناعي، يجيب عن استفساراتك فورياً ويقدم توصيات تساعدك على فهم السوق واتخاذ القرار</p>
+          <p class="jstep-en">An <span class="nowrap">AI-powered</span> real estate assistant that instantly answers your questions and provides recommendations to help you understand the market and make informed decisions</p>
+        </article>
+        <article class="jstep" data-step-item="2" style="--at: 955px">
+          <p class="jstep-badge"><span>STEP 03</span> <span lang="ar" dir="rtl">الخطوة</span></p>
+          <h3 class="jstep-title"><span lang="ar" dir="rtl">تنفيذ الخدمات العقارية</span><span>Access Real Estate</span></h3>
+          <p class="jstep-ar" lang="ar" dir="rtl">يساعدك الوسيط الذكي على تقديم طلب تجديد عقد الإيجار نيابة عن المؤجر أو المستأجر، بخطوات رقمية أكثر سهولة</p>
+          <p class="jstep-en">The AI assistant helps submit lease renewal requests on behalf of landlords or tenants through a simpler digital process</p>
+        </article>
+        <article class="jstep" data-step-item="3" style="--at: 681px">
+          <p class="jstep-badge"><span>STEP 04</span> <span lang="ar" dir="rtl">الخطوة</span></p>
+          <h3 class="jstep-title"><span lang="ar" dir="rtl">النتيجة النهائية</span><span>Final Outcome</span></h3>
+          <p class="jstep-ar" lang="ar" dir="rtl">شفافية أكبر، قرارات عقارية مدعومة بالبيانات، وخدمات رقمية توفر الوقت والجهد وتعزز الثقة</p>
+          <p class="jstep-en">Greater transparency, <span class="nowrap">data-driven</span> real estate decisions, and digital services that save time, reduce effort, and build trust</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 7. Aqari in numbers, three steps: three glass cards over the globe. Each step brings the next
+         card to the big place in the middle; the other two wait at the sides, smaller -->
+    <section class="slide slide--numbers" id="page-7" data-section="numbers" data-steps="3" aria-labelledby="p7-title">
+      <!-- the globe, as in Aqari_Revised page 17 (the disc behind it is part of .numbers-band): a thin arch in three pieces, and the
+           glass sphere with the Aqari logo (images/globe.webp, rendered from the PDF, its white rim included).
+           Box 560 x 560, centred on the PDF's sphere centre; arch radius 145.85, ends 15px above the centre.
+           The arch's three pieces are the step indicator for the cards above: a pale segment
+           (.orb-indicator, over the whole arch) slides onto the piece for the current step. -->
+      <div class="numbers-band" data-anim style="--i: 4" aria-hidden="true"></div>
+      <div class="orb" data-anim style="--i: 4" aria-hidden="true">
+        <svg class="orb-back" viewBox="0 0 560 560">
+          <path class="orb-arch" d="M134.93 264.95A145.85 145.85 0 0 1 193.25 162.75" pathLength="1"/>
+          <path class="orb-arch orb-arch--top" d="M193.25 162.75A145.85 145.85 0 0 1 366.75 162.75" pathLength="1"/>
+          <path class="orb-arch" d="M366.75 162.75A145.85 145.85 0 0 1 425.07 264.95" pathLength="1"/>
+          <path class="orb-indicator" d="M134.93 264.95A145.85 145.85 0 0 1 425.07 264.95" pathLength="1"/>
+        </svg>
+        <img class="orb-globe" src="images/globe.webp" width="755" height="754" alt="">
+        <!-- the green light low in the sphere, moving softly over the image's own green shade -->
+        <span class="orb-glow"></span>
+      </div>
+      <h2 class="sec-title sec-title--center" id="p7-title" data-anim>
+        <img class="sec-title-img" src="images/title-numbers.svg" width="755" height="122" alt="Aqari in Numbers - عقاري بالأرقام">
+      </h2>
+      <p class="numbers-sub" data-anim><span>Since the platform's launch through June 2026</span><span lang="ar" dir="rtl">منذ إطلاق المنصة وحتى يونيو 2026</span></p>
+      <!-- data-ring: the card's place in the turn (js/slides.js sets data-slot: 0 left, 1 middle, 2 right) -->
+      <div class="stat stat--a" data-ring="0" data-anim style="--i: 3">
+        <span class="stat-ar" lang="ar" dir="rtl">خدمة رقمية مؤتمتة</span>
+        <strong class="stat-num"><span data-count="24">24</span>+</strong>
+        <span class="stat-en">Digital services automated</span>
+      </div>
+      <div class="stat stat--b" data-ring="1" data-anim style="--i: 2">
+        <span class="stat-ar" lang="ar" dir="rtl">مستخدم للمنصة</span>
+        <strong class="stat-num"><span data-count="100000">100,000</span>+</strong>
+        <span class="stat-en">platform users</span>
+      </div>
+      <div class="stat stat--c" data-ring="2" data-anim style="--i: 3">
+        <span class="stat-ar" lang="ar" dir="rtl">معاملات عقارية منجزة</span>
+        <strong class="stat-num"><span data-count="350000">350,000</span>+</strong>
+        <span class="stat-en">Real Estate Transactions Completed</span>
+      </div>
+    </section>
+
+    <!-- 8. closing: the Aqari logo and the tagline over the dot wave (three.js, js/dotwave.js) -->
+    <section class="slide" id="page-8" data-section="numbers" aria-label="Aqari">
+      <!-- the dot wave along the bottom: an ocean surface of dots drawn with three.js (js/dotwave.js) -->
+      <canvas class="slide-wave" aria-hidden="true"></canvas>
+      <!-- in the middle of the page: the Aqari logo (images/logofooter.png) and the tagline under it -->
+      <footer class="slide-footer" data-anim>
+        <img class="slide-footer-logo" src="images/logofooter.png" width="1429" height="1023" alt="Aqari">
+        <p class="slide-footer-tagline" lang="ar" dir="rtl">بيانات ترشد قرارك، <strong>وذكاء اصطناعي يسهّل خدماتك</strong></p>
+        <p class="slide-footer-tagline slide-footer-tagline-en">Data to guide your decisions, <strong>AI to simplify your services</strong></p>
+      </footer>
+    </section>
+  </main>
+
+  <!-- the section tabs, in a notch rising from the bottom edge (the top notch, upside down).
+       Right to left, in reading order for Arabic. The current section's tab is highlighted. -->
+  <nav class="section-nav" aria-label="Sections">
+    <a href="#page-7" data-section="numbers"><span lang="ar" dir="rtl">عقاري بالأرقام</span><span>Aqari in Numbers</span></a>
+    <a href="#page-6" data-section="journey"><span lang="ar" dir="rtl">رحلة الزائر</span><span>Visitor Journey</span></a>
+    <a href="#page-5" data-section="features"><span lang="ar" dir="rtl">المميزات الذكية</span><span>Smart Features</span></a>
+    <a href="#page-4" data-section="objectives"><span lang="ar" dir="rtl">الأهداف</span><span>Objectives</span></a>
+  </nav>
+</body>
 </html>
