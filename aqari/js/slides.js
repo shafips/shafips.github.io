@@ -8,9 +8,9 @@
    its steps first, then on to the next slide. Inside a slide:
      data-step="k"         on the slide: the current step (0-based)
      [data-step-item="n"]  .is-current when n = k, .is-past when n < k
-     [data-stack="n"]      data-pos = n - k (card stacks: 0 front, 1, 2 behind, -1 gone)
      [data-ring="n"]       data-slot = (n - k) mod count (cards taking turns in a ring: on the
-                           numbers page 0 left, 1 middle, 2 right). A card that changes place gets
+                           numbers page 0 left, 1 middle, 2 right; on the photo
+                           fans of pages 4 and 5, 0 middle). A card that changes place gets
                            .is-moving for a moment; one that goes round the back (first to last
                            place, or back) gets .is-wrapping instead.
      [data-count="N"]      counts up from 0 to N: all of them as their slide comes in, and a
@@ -88,9 +88,6 @@ if (root) {
       const n = parseInt(el.dataset.stepItem, 10);
       el.classList.toggle('is-current', n === k);
       el.classList.toggle('is-past', n < k);
-    });
-    slide.querySelectorAll('[data-stack]').forEach((el) => {
-      el.dataset.pos = String(parseInt(el.dataset.stack, 10) - k);
     });
     const ring = slide.querySelectorAll('[data-ring]');
     ring.forEach((el) => {

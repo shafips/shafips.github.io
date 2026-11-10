@@ -4,18 +4,17 @@
 // row from the back, rising in out of a blur and leaving upwards (downwards when going back). Drag to
 // turn it, click a print to bring it to the front; the cloth bends, flutters and catches the
 // cursor's air.
-// A plain script: uses window.Scrollstage (js/lib/scrollstage.js) and watchSlide() (js/whenactive.js).
+// A plain script: uses window.Scrollstage (js/lib/scrollstage.js), watchSlide() (js/whenactive.js)
+// and window.AQARI_RING_IMAGES (js/ring-images.js).
 (() => {
 const { Stage, ClothRing } = window.Scrollstage;
 
-// the prints: placeholder photos from picsum.photos (3:4 like the prints; a fixed seed each, so the
-// same photo every time). Picsum sends CORS headers, so WebGL can use them; they need a connection.
-// The ring repeats them to fill its 20 cards.
-const PHOTO_COUNT = 10;
-const PHOTOS = Array.from({ length: PHOTO_COUNT }, (_, i) => `https://picsum.photos/seed/aqari-${i + 1}/600/800`);
+// the prints: the Round_Cards photos (3:4 like the prints), as data URLs from js/ring-images.js so
+// they also load with the page opened from disk. The ring repeats them to fill its 20 cards.
+const PHOTOS = window.AQARI_RING_IMAGES || [];
 
 const canvas = document.querySelector('.gallery-canvas');
-if (canvas) {
+if (canvas && PHOTOS.length) {
   startGallery(canvas).catch((err) => console.warn('Image slider unavailable.', err));
 }
 
@@ -44,7 +43,7 @@ async function startGallery(canvas) {
     radius: 32 * 0.4 / (2 * Math.PI),
     cardSize: [1, 4 / 3],
     spacing: 0.4,
-    cornerRadius: 0.035,
+    cornerRadius: 0.08,       // rounded corners (share of the card's width)
     speed: 0.075,             // the prints at the front come in from the right and leave to the left
     // the cloth waves like a flag in a steady wind; the cursor blows on the prints near it
     flag: 1,

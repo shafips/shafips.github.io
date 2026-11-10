@@ -13,6 +13,7 @@ js/lib/three.min.js   three.js r160 (window.THREE)
 js/lib/scrollstage.js 3D components: Stage, ClothRing, BlobGradient, WaveImage (window.Scrollstage)
 js/whenactive.js      watchSlide(): run a scene only while its slide shows
 js/bg-image.js        the background image as a data URL (for WebGL from disk)
+js/ring-images.js     the page 2 ring photos as data URLs (same reason)
 js/main.js            animated background
 js/dotwave.js         dot wave, on any <canvas class="slide-wave">
 js/gallery.js         3D image ring, on <canvas class="gallery-canvas">
@@ -36,7 +37,7 @@ classes gets the same motion.
 | Title wipe | `<h2 class="sec-title"><img class="sec-title-img" src="..."></h2>` |
 | Glass card with sheen | `.intro-card` with a `<span class="intro-shine">` inside |
 | Dot wave | `<canvas class="slide-wave">` in any slide (add `slide-wave--band` for a band) |
-| 3D image ring | `<canvas class="gallery-canvas">`; images and ring settings in `js/gallery.js` |
+| 3D image ring | `<canvas class="gallery-canvas">`; images in `js/ring-images.js`, ring settings in `js/gallery.js` |
 | Animated background | automatic; colours, pace and reach in `js/main.js` |
 
 Jump to a slide or step with the address: `index.html#page-5/3` opens page 5 at step 3.

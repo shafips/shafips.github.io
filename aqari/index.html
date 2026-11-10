@@ -28,13 +28,14 @@
      slides.js: the pages and their steps (one scroll = one step), first so paging works straight away.
      lib/three.min.js, lib/scrollstage.js: three.js (window.THREE) and the scrollstage components
      (window.Scrollstage). whenactive.js: draws a scene only while its page shows. bg-image.js: the
-     background image as a data URL for WebGL. Then the scenes: dotwave.js (the dot waves),
+     background image as a data URL for WebGL, ring-images.js: the page 2 photos, the same way. Then the scenes: dotwave.js (the dot waves),
      gallery.js (the image ring, page 2), main.js (the animated background). -->
 <script defer src="js/slides.js"></script>
 <script defer src="js/lib/three.min.js"></script>
 <script defer src="js/lib/scrollstage.js"></script>
 <script defer src="js/whenactive.js"></script>
 <script defer src="js/bg-image.js"></script>
+<script defer src="js/ring-images.js"></script>
 <script defer src="js/dotwave.js"></script>
 <script defer src="js/gallery.js"></script>
 <script defer src="js/main.js"></script>
@@ -159,16 +160,17 @@
           </div>
         </div>
       </div>
-      <!-- the deck: card n is at the front on step n, the next ones wait behind it, blurred -->
-      <div class="card-stack" data-anim aria-hidden="true">
-        <figure class="stack-card" data-stack="0"><img src="images/objective-man.webp" width="1000" height="1005" alt=""></figure>
-        <figure class="stack-card" data-stack="1"><img src="images/card-welcome.webp" width="532" height="720" alt=""></figure>
-        <figure class="stack-card" data-stack="2"><img src="images/card-services.webp" width="548" height="720" alt=""></figure>
-        <figure class="stack-card" data-stack="3"><img src="images/card-welcome.webp" width="532" height="720" alt=""></figure>
+      <!-- four photos in a turning fan, one per step (as on page 5): the step's photo in the middle,
+           the next to its right, the last to its left, one waiting behind -->
+      <div class="photo-fan photo-fan--4" data-anim aria-hidden="true">
+        <figure class="fan-photo" data-ring="0"><img src="images/objective-man.webp" width="1000" height="1005" alt=""></figure>
+        <figure class="fan-photo" data-ring="1"><img src="images/objective-decisions.webp" width="1200" height="1410" alt=""></figure>
+        <figure class="fan-photo" data-ring="2"><img src="images/objective-ai.webp" width="1200" height="1410" alt=""></figure>
+        <figure class="fan-photo" data-ring="3"><img src="images/objective-efficiency.webp" width="1200" height="1410" alt=""></figure>
       </div>
     </section>
 
-    <!-- 5. smart features, five steps: the photo stays, and the two cards behind it fan with each step -->
+    <!-- 5. smart features, five steps: a fan of five photos that turns with each step (the number) -->
     <section class="slide slide--split slide--features" id="page-5" data-section="features" data-steps="5" aria-labelledby="p5-title">
       <!-- the digits: as on page 4 (Aqari_Revised pages 8-12) -->
       <svg class="big-num" viewBox="0 0 600 1034" aria-hidden="true">
@@ -205,12 +207,14 @@
           </div>
         </div>
       </div>
-      <div class="feature-visual" data-anim aria-hidden="true">
-        <img class="fan-card fan-card--left" src="images/card-welcome.webp" width="532" height="720" alt="">
-        <img class="fan-card fan-card--right" src="images/card-services.webp" width="548" height="720" alt="">
-        <figure class="feature-photo">
-          <img src="images/feature-man.webp" width="1000" height="1004" alt="">
-        </figure>
+      <div class="photo-fan" data-anim aria-hidden="true">
+        <!-- five photos in a fan, one per step: the step's photo in the middle, the others two each
+             side. data-ring (js/slides.js): each step turns the fan one place -->
+        <figure class="fan-photo" data-ring="0"><img src="images/feature-map.webp" width="1050" height="1356" alt=""></figure>
+        <figure class="fan-photo" data-ring="1"><img src="images/feature-data.webp" width="1050" height="1356" alt=""></figure>
+        <figure class="fan-photo" data-ring="2"><img src="images/feature-assistant.webp" width="1050" height="1356" alt=""></figure>
+        <figure class="fan-photo" data-ring="3"><img src="images/feature-lease.webp" width="1050" height="1356" alt=""></figure>
+        <figure class="fan-photo" data-ring="4"><img src="images/feature-services.webp" width="1050" height="1356" alt=""></figure>
       </div>
     </section>
 
